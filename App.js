@@ -54,10 +54,11 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // ──────────────── COLOR PALETTE ────────────────
 const C = {
-  bg: '#090b10',
-  card: '#12151e',
-  cardLight: '#1a1e2d',
-  surface: '#161922',
+  bg: 'transparent',
+  baseDark: '#090B10',
+  card: 'rgba(18, 21, 30, 0.88)',
+  cardLight: 'rgba(26, 30, 45, 0.90)',
+  surface: 'rgba(22, 25, 34, 0.92)',
   accent: '#FFB800',
   red: '#E03638',
   green: '#008751',
@@ -67,8 +68,65 @@ const C = {
   textSoft: '#94A3B8',
   textMuted: '#64748B',
   border: 'rgba(255,255,255,0.08)',
-  borderLight: 'rgba(255,255,255,0.12)',
+  borderLight: 'rgba(255,255,255,0.14)',
 };
+
+// ══════════════════════════════════════════════════
+//  FAINT DIMMED ATMOSPHERIC APP BACKGROUND
+// ══════════════════════════════════════════════════
+const BG_IMAGES = {
+  embrace: require('./assets/bg-couple-embrace.png'), // B&W couple embrace with rings
+  sunset: require('./assets/bg-sunset-hands.png'),     // Sunset pinky holding silhouette
+  watermark: require('./assets/bg-bts-watermark.jpg'), // Behind The Scenes monogram
+};
+
+function DimmedAppBackground({ screen = 'discover', step = null }) {
+  let activeImage = BG_IMAGES.sunset;
+
+  if (step !== null) {
+    if (step === 1 || step === 5) {
+      activeImage = BG_IMAGES.watermark;
+    } else if (step === 2 || step === 3 || step === 4 || step === 6) {
+      activeImage = BG_IMAGES.embrace;
+    } else {
+      activeImage = BG_IMAGES.sunset;
+    }
+  } else {
+    if (screen === 'discover' || screen === 'date_drops') {
+      activeImage = BG_IMAGES.sunset;
+    } else if (screen === 'profile' || screen === 'likes_you') {
+      activeImage = BG_IMAGES.embrace;
+    } else {
+      activeImage = BG_IMAGES.watermark;
+    }
+  }
+
+  return (
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      {/* 1. Underlying Dark Tint Base */}
+      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: '#07090E' }} />
+
+      {/* 2. Faint Dimmed Atmospheric Background Image */}
+      <Image
+        source={activeImage}
+        style={{
+          width: '100%',
+          height: '100%',
+          resizeMode: 'cover',
+          opacity: 0.12, // Faint and dimmed as requested by GLOBITECH
+        }}
+      />
+
+      {/* 3. Soft Dark Vignette Overlay for perfect readability */}
+      <View
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: 'rgba(7, 9, 14, 0.70)',
+        }}
+      />
+    </View>
+  );
+}
 
 // ══════════════════════════════════════════════════
 //  OFFICIAL GOOGLE BRAND VECTOR ICON
@@ -678,11 +736,12 @@ function OnboardingScreen({ onComplete }) {
   };
 
   // ══════════════════════════════════════════════════
-  // STEP 1: WELCOME SCREEN
+  // ONBOARDING STEP CONTENT
   // ══════════════════════════════════════════════════
-  if (step === 1) {
-    return (
-      <View style={[s.fullCenter, { backgroundColor: C.bg, paddingHorizontal: 28 }]}>
+  const renderStepContent = () => {
+    if (step === 1) {
+      return (
+        <View style={[s.fullCenter, { backgroundColor: C.bg, paddingHorizontal: 28 }]}>
         {/* Official Brand Logo */}
         <Image 
           source={require('./assets/bts-official-logo.png')} 
@@ -1724,6 +1783,14 @@ function OnboardingScreen({ onComplete }) {
         )}
       </ScrollView>
     </View>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#07090E' }}>
+      <DimmedAppBackground step={step} />
+      {renderStepContent()}
+    </View>
   );
 }
 
@@ -2231,8 +2298,10 @@ function ChatScreen({ match, onClose }) {
 
   return (
     <Modal visible animationType="slide">
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
+        <DimmedAppBackground screen="matches" />
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           {/* Chat Header */}
           <View style={s.chatHeader}>
             <TouchableOpacity 
@@ -2530,7 +2599,8 @@ function ChatScreen({ match, onClose }) {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </Modal>
+    </View>
+  </Modal>
   );
 }
 
@@ -4059,16 +4129,20 @@ export default function App() {
 
   if (!userProfile) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
         <StatusBar barStyle="light-content" />
-        <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} />
-      </SafeAreaView>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
+          <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} />
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+    <View style={{ flex: 1, backgroundColor: '#07090E' }}>
       <StatusBar barStyle="light-content" />
+      <DimmedAppBackground screen={tab} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
 
       {/* Header */}
       <View style={s.header}>
@@ -4206,7 +4280,8 @@ export default function App() {
       {chatMatch && (
         <ChatScreen match={chatMatch} onClose={() => setChatMatch(null)} />
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
