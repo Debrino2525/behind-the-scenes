@@ -1,17 +1,27 @@
 {
   "expo": {
-    "name": "behind-the-scenes-mobile",
-    "slug": "behind-the-scenes-mobile",
+    "name": "Behind The Scenes",
+    "slug": "behind-the-scenes-dating-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#090b10",
+    "splash": {
+      "backgroundColor": "#090b10",
+      "resizeMode": "contain"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.behindthescenes.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.behindthescenes.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#090b10",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,6 +29,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b846f31e-3423-458b-9249-3e113c00a41f"
+      }
+    },
+    "owner": "behind-the-scenes"
   }
 }
