@@ -46,6 +46,7 @@ import {
   clearLocalProfile 
 } from './lib/localStorage';
 import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import Svg, { Path } from 'react-native-svg';
 import { verifyHumanFace } from './lib/faceVerification';
 
@@ -159,6 +160,27 @@ function OnboardingScreen({ onComplete }) {
   // Candid BTS Moment
   const [btsCaption, setBtsCaption] = useState('Sunday waakye in my oversized t-shirt, completely unedited.');
   const [btsHabit, setBtsHabit] = useState('I listen to Daddy Lumba every Sunday morning.');
+
+  // Onboarding Voice Note Recording (Step 5)
+  const [onboardingVoiceUri, setOnboardingVoiceUri] = useState(null);
+  const [onboardingVoiceDuration, setOnboardingVoiceDuration] = useState('0:14');
+  const [isRecordingStep5, setIsRecordingStep5] = useState(false);
+  const [recordSecondsStep5, setRecordSecondsStep5] = useState(0);
+  const [isPlayingStep5, setIsPlayingStep5] = useState(false);
+  const recordingStep5Ref = useRef(null);
+  const soundStep5Ref = useRef(null);
+  const timerStep5Ref = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (soundStep5Ref.current) {
+        soundStep5Ref.current.unloadAsync().catch(() => {});
+      }
+      if (timerStep5Ref.current) {
+        clearInterval(timerStep5Ref.current);
+      }
+    };
+  }, []);
 
   // Real Camera & Liveness
   const [capturedSelfieUri, setCapturedSelfieUri] = useState(null);
@@ -422,6 +444,99 @@ function OnboardingScreen({ onComplete }) {
     setStep(4);
   };
 
+  // STEP 5 VOICE NOTE RECORDING HANDLERS
+  const handleStartRecordStep5 = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Microphone Permission', 'Microphone access is required to record your voice intro.');
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingStep5Ref.current = recording;
+      setIsRecordingStep5(true);
+      setRecordSecondsStep5(0);
+
+      timerStep5Ref.current = setInterval(() => {
+        setRecordSecondsStep5((prev) => {
+          if (prev >= 15) {
+            handleStopRecordStep5();
+            return 15;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      Alert.alert('Recording Error', err?.message || 'Could not start audio recorder.');
+      setIsRecordingStep5(false);
+    }
+  };
+
+  const handleStopRecordStep5 = async () => {
+    try {
+      if (timerStep5Ref.current) {
+        clearInterval(timerStep5Ref.current);
+      }
+      const recording = recordingStep5Ref.current;
+      if (!recording) return;
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      recordingStep5Ref.current = null;
+      setIsRecordingStep5(false);
+
+      if (uri) {
+        setOnboardingVoiceUri(uri);
+        const secs = Math.max(1, recordSecondsStep5);
+        const formatted = `0:${secs < 10 ? '0' : ''}${secs}`;
+        setOnboardingVoiceDuration(formatted);
+      }
+    } catch (err) {
+      console.warn('Stop recording error in step 5:', err);
+      setIsRecordingStep5(false);
+    }
+  };
+
+  const handlePlayPreviewStep5 = async () => {
+    try {
+      if (!onboardingVoiceUri) return;
+      if (isPlayingStep5) {
+        if (soundStep5Ref.current) {
+          await soundStep5Ref.current.stopAsync();
+        }
+        setIsPlayingStep5(false);
+        return;
+      }
+
+      if (soundStep5Ref.current) {
+        await soundStep5Ref.current.unloadAsync();
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: onboardingVoiceUri },
+        { shouldPlay: true }
+      );
+      soundStep5Ref.current = sound;
+      setIsPlayingStep5(true);
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          setIsPlayingStep5(false);
+        }
+      });
+    } catch (err) {
+      console.warn('Play audio error in step 5:', err);
+      setIsPlayingStep5(false);
+    }
+  };
+
   // REAL CAMERA LIVE SELFIE CAPTURE WITH PURE BIOMETRIC HUMAN FACE VERIFICATION
   const takeLiveSelfie = async () => {
     try {
@@ -511,7 +626,11 @@ function OnboardingScreen({ onComplete }) {
         mainPhoto,
         'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
         'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80'
-      ]
+      ],
+      voiceNoteUrl: onboardingVoiceUri || null,
+      voiceNoteDuration: onboardingVoiceDuration || '0:14',
+      voiceNoteTitle: 'My Real Voice Intro',
+      voiceNoteTranscript: btsCaption || 'Unedited voice note from Behind The Scenes'
     };
 
     // 1. Persist locally to device storage immediately
@@ -527,6 +646,14 @@ function OnboardingScreen({ onComplete }) {
             if (uploadedUrl && uploadedUrl.startsWith('http')) {
               profile.photo = uploadedUrl;
               profile.photos[0] = uploadedUrl;
+            }
+          } catch (e) {}
+        }
+        if (onboardingVoiceUri) {
+          try {
+            const uploadedVoice = await appwriteUploadVoiceNote(onboardingVoiceUri, `${user.$id}-intro.m4a`);
+            if (uploadedVoice && uploadedVoice.startsWith('http')) {
+              profile.voiceNoteUrl = uploadedVoice;
             }
           } catch (e) {}
         }
@@ -1113,7 +1240,7 @@ function OnboardingScreen({ onComplete }) {
               DAILY QUIRKY HABIT
             </Text>
             <TextInput
-              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 24 }]}
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20 }]}
               value={btsHabit}
               onChangeText={setBtsHabit}
               placeholder="e.g. I listen to Daddy Lumba every Sunday morning"
@@ -1121,6 +1248,132 @@ function OnboardingScreen({ onComplete }) {
               returnKeyType="done"
               onSubmitEditing={() => Keyboard.dismiss()}
             />
+
+            {/* ────────────────────────────────────────────── */}
+            {/* VOICE NOTE INTRO RECORDER (15s)               */}
+            {/* ────────────────────────────────────────────── */}
+            <View style={{ 
+              backgroundColor: '#0D111A', 
+              borderRadius: 20, 
+              padding: 16, 
+              borderWidth: 1, 
+              borderColor: isRecordingStep5 ? C.red : 'rgba(255,184,0,0.25)', 
+              marginBottom: 24 
+            }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1 }}>
+                  YOUR VOICE NOTE INTRO 🎙️ (OPTIONAL)
+                </Text>
+                <View style={{ backgroundColor: 'rgba(255,184,0,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                  <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800' }}>15s Max</Text>
+                </View>
+              </View>
+              <Text style={{ color: C.textSoft, fontSize: 11, marginBottom: 14, lineHeight: 16 }}>
+                Record your real speaking voice to stand out immediately on the discovery stack. Matches listen before they connect!
+              </Text>
+
+              {isRecordingStep5 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: C.red }} />
+                    <Text style={{ color: C.red, fontSize: 14, fontWeight: '900', letterSpacing: 1 }}>
+                      RECORDING: 0:{recordSecondsStep5 < 10 ? '0' : ''}{recordSecondsStep5} / 0:15
+                    </Text>
+                  </View>
+
+                  {/* Pulsing visual bars */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 28, marginVertical: 6 }}>
+                    {[16, 24, 12, 28, 20, 14, 26, 18, 10, 22, 16, 28].map((h, i) => (
+                      <View 
+                        key={i} 
+                        style={{ 
+                          width: 4, 
+                          height: h, 
+                          backgroundColor: C.red, 
+                          borderRadius: 2,
+                          opacity: (i + recordSecondsStep5) % 2 === 0 ? 1 : 0.4
+                        }} 
+                      />
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleStopRecordStep5}
+                    style={{
+                      backgroundColor: C.red,
+                      paddingHorizontal: 20,
+                      paddingVertical: 10,
+                      borderRadius: 16,
+                      marginTop: 12
+                    }}
+                  >
+                    <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>
+                      ■ Tap to Finish & Save Audio
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View>
+                  {onboardingVoiceUri ? (
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      backgroundColor: 'rgba(255,184,0,0.08)', 
+                      padding: 12, 
+                      borderRadius: 14, 
+                      borderWidth: 1, 
+                      borderColor: 'rgba(255,184,0,0.3)',
+                      marginBottom: 10
+                    }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>
+                          My Real Voice Intro
+                        </Text>
+                        <Text style={{ color: C.emerald, fontSize: 11, marginTop: 2, fontWeight: '700' }}>
+                          ✓ {onboardingVoiceDuration} • Ready to Upload
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={handlePlayPreviewStep5}
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 19,
+                          backgroundColor: C.accent,
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Text style={{ color: '#000', fontSize: 16, fontWeight: '900' }}>
+                          {isPlayingStep5 ? '❚❚' : '▶'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+
+                  <TouchableOpacity
+                    onPress={handleStartRecordStep5}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.12)',
+                      gap: 8
+                    }}
+                  >
+                    <Text style={{ fontSize: 16 }}>🎙️</Text>
+                    <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>
+                      {onboardingVoiceUri ? 'Re-record Voice Intro' : 'Tap to Record Voice Intro (Microphone)'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
 
             <TouchableOpacity 
               style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
@@ -1545,6 +1798,27 @@ function ChatScreen({ match, onClose }) {
   const [showPhotosModal, setShowPhotosModal] = useState(false);
   const flatListRef = useRef(null);
 
+  // Chat Voice Note Recording & Playback State
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [activePlayingId, setActivePlayingId] = useState(null);
+
+  const recordingRef = useRef(null);
+  const soundRef = useRef(null);
+  const timerRef = useRef(null);
+
+  // Clean up audio on chat close
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => {});
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
   const matchPhotos = Array.isArray(match.photos) && match.photos.length > 0
     ? match.photos
     : [
@@ -1571,6 +1845,121 @@ function ChatScreen({ match, onClose }) {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
     }, 1200);
+  };
+
+  const handleStartVoiceRecording = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Microphone Permission', 'Microphone access is needed to record voice messages.');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setIsRecordingVoice(true);
+      setRecordSeconds(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordSeconds(s => s + 1);
+      }, 1000);
+    } catch (err) {
+      Alert.alert('Recording Error', err?.message || 'Could not start voice note.');
+      setIsRecordingVoice(false);
+    }
+  };
+
+  const handleStopVoiceRecording = async (sendAudio = true) => {
+    try {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      const recording = recordingRef.current;
+      if (!recording) return;
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      recordingRef.current = null;
+      setIsRecordingVoice(false);
+
+      if (sendAudio && uri) {
+        const secs = Math.max(1, recordSeconds);
+        const durationFormatted = `0:${secs < 10 ? '0' : ''}${secs}`;
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now(),
+            sender: 'me',
+            isVoice: true,
+            duration: durationFormatted,
+            audioUri: uri,
+            time: now
+          }
+        ]);
+        setShowIcebreakers(false);
+
+        // Simulated match audio reply
+        setTimeout(() => {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: Date.now() + 1,
+              sender: 'them',
+              text: "Loved your voice note! You have great energy. Let's definitely set up a date soon!",
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+        }, 2000);
+      }
+    } catch (err) {
+      console.warn('Voice record stop error:', err);
+      setIsRecordingVoice(false);
+    }
+  };
+
+  const handleTogglePlayVoiceMessage = async (msgId, audioUri) => {
+    try {
+      if (activePlayingId === msgId) {
+        if (soundRef.current) {
+          await soundRef.current.pauseAsync();
+        }
+        setActivePlayingId(null);
+        return;
+      }
+
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+      }
+
+      if (audioUri) {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUri },
+          { shouldPlay: true }
+        );
+        soundRef.current = sound;
+        setActivePlayingId(msgId);
+
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setActivePlayingId(null);
+          }
+        });
+      } else {
+        setActivePlayingId(msgId);
+        setTimeout(() => setActivePlayingId(null), 2500);
+      }
+    } catch (e) {
+      setActivePlayingId(null);
+    }
   };
 
   return (
@@ -1665,14 +2054,57 @@ function ChatScreen({ match, onClose }) {
             keyExtractor={m => String(m.id)}
             contentContainerStyle={{ padding: 16, paddingBottom: 12, flexGrow: 1 }}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            renderItem={({ item }) => (
-              <View style={[s.msgBubbleWrap, item.sender === 'me' && { alignItems: 'flex-end' }]}>
-                <View style={[s.msgBubble, item.sender === 'me' ? s.msgMe : s.msgThem]}>
-                  <Text style={[s.bodySmall, { color: item.sender === 'me' ? '#000' : '#E2E8F0', lineHeight: 20 }]}>{item.text}</Text>
+            renderItem={({ item }) => {
+              if (item.isVoice) {
+                const isPlaying = activePlayingId === item.id;
+                return (
+                  <View style={[s.msgBubbleWrap, item.sender === 'me' && { alignItems: 'flex-end' }]}>
+                    <View 
+                      style={[
+                        s.msgBubble, 
+                        item.sender === 'me' ? s.msgMe : s.msgThem,
+                        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 10 }
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={() => handleTogglePlayVoiceMessage(item.id, item.audioUri)}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: item.sender === 'me' ? '#000' : C.accent,
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Text style={{ color: item.sender === 'me' ? '#FFF' : '#000', fontSize: 13, fontWeight: '900' }}>
+                          {isPlaying ? '⏸' : '▶'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <View>
+                        <Text style={{ color: item.sender === 'me' ? '#000' : '#FFF', fontSize: 12, fontWeight: '800' }}>
+                          🎙 Voice Note
+                        </Text>
+                        <Text style={{ color: item.sender === 'me' ? '#333' : C.textMuted, fontSize: 10, marginTop: 1 }}>
+                          {item.duration || '0:05'} • {isPlaying ? 'Playing...' : 'Tap to listen'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 4, marginHorizontal: 4, fontSize: 10 }]}>{item.time}</Text>
+                  </View>
+                );
+              }
+
+              return (
+                <View style={[s.msgBubbleWrap, item.sender === 'me' && { alignItems: 'flex-end' }]}>
+                  <View style={[s.msgBubble, item.sender === 'me' ? s.msgMe : s.msgThem]}>
+                    <Text style={[s.bodySmall, { color: item.sender === 'me' ? '#000' : '#E2E8F0', lineHeight: 20 }]}>{item.text}</Text>
+                  </View>
+                  <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 4, marginHorizontal: 4, fontSize: 10 }]}>{item.time}</Text>
                 </View>
-                <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 4, marginHorizontal: 4, fontSize: 10 }]}>{item.time}</Text>
-              </View>
-            )}
+              );
+            }}
           />
 
           {/* Clean, Compact Horizontal Icebreakers Bar (Fixed Height, Zero Vertical Stretch) */}
@@ -1715,22 +2147,80 @@ function ChatScreen({ match, onClose }) {
 
           {/* Chat Input Bar */}
           <View style={[s.chatInput, { backgroundColor: '#10131B', paddingVertical: 10 }]}>
-            <TextInput
-              style={[s.chatTextInput, { fontSize: 14 }]}
-              placeholder={`Message ${match.name}...`}
-              placeholderTextColor={C.textMuted}
-              value={input}
-              onChangeText={setInput}
-              onSubmitEditing={() => send()}
-              returnKeyType="send"
-            />
-            <TouchableOpacity 
-              style={[s.sendBtn, { opacity: input.trim() ? 1 : 0.4 }]} 
-              onPress={() => send()} 
-              disabled={!input.trim()}
-            >
-              <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>→</Text>
-            </TouchableOpacity>
+            {isRecordingVoice ? (
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.red }} />
+                  <Text style={{ color: C.red, fontSize: 13, fontWeight: '900' }}>
+                    Recording Voice Note... 0:{recordSeconds < 10 ? '0' : ''}{recordSeconds}
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => handleStopVoiceRecording(false)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                      backgroundColor: 'rgba(255,255,255,0.08)'
+                    }}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '800' }}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleStopVoiceRecording(true)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                      backgroundColor: C.accent
+                    }}
+                  >
+                    <Text style={{ color: '#000', fontSize: 11, fontWeight: '900' }}>Send ➤</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <>
+                {/* Voice Note Recorder Button */}
+                <TouchableOpacity
+                  onPress={handleStartVoiceRecording}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 14,
+                    backgroundColor: 'rgba(255,184,0,0.12)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,184,0,0.3)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 8
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>🎙️</Text>
+                </TouchableOpacity>
+
+                <TextInput
+                  style={[s.chatTextInput, { fontSize: 14 }]}
+                  placeholder={`Message ${match.name}...`}
+                  placeholderTextColor={C.textMuted}
+                  value={input}
+                  onChangeText={setInput}
+                  onSubmitEditing={() => send()}
+                  returnKeyType="send"
+                />
+
+                <TouchableOpacity 
+                  style={[s.sendBtn, { opacity: input.trim() ? 1 : 0.4 }]} 
+                  onPress={() => send()} 
+                  disabled={!input.trim()}
+                >
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>→</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -2379,6 +2869,137 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
     );
   };
 
+  // Voice Note State
+  const [voiceNoteTitle, setVoiceNoteTitle] = useState(
+    userProfile?.voiceNoteTitle || userProfile?.voiceNote?.title || 'My actual voice: Roast me if you dare'
+  );
+  const [voiceNoteDuration, setVoiceNoteDuration] = useState(
+    userProfile?.voiceNoteDuration || userProfile?.voiceNote?.duration || '0:14'
+  );
+  const [voiceNoteTranscript, setVoiceNoteTranscript] = useState(
+    userProfile?.voiceNoteTranscript || userProfile?.voiceNote?.transcript || "Hey there! This is my actual speaking voice, unedited. If you love good conversation, let's connect!"
+  );
+  const [voiceNoteUri, setVoiceNoteUri] = useState(
+    userProfile?.voiceNoteUrl || userProfile?.voiceNote?.uri || null
+  );
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+
+  const recordingInstanceRef = useRef(null);
+  const soundInstanceRef = useRef(null);
+  const timerIntervalRef = useRef(null);
+
+  // Clean up sound on unmount
+  useEffect(() => {
+    return () => {
+      if (soundInstanceRef.current) {
+        soundInstanceRef.current.unloadAsync().catch(() => {});
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const handleStartVoiceRecording = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Microphone Permission', 'Microphone access is required to record your voice intro.');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingInstanceRef.current = recording;
+      setIsRecordingVoice(true);
+      setRecordSeconds(0);
+
+      timerIntervalRef.current = setInterval(() => {
+        setRecordSeconds((prev) => {
+          if (prev >= 15) {
+            handleStopVoiceRecording();
+            return 15;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      Alert.alert('Recording Error', err?.message || 'Could not start audio recorder.');
+      setIsRecordingVoice(false);
+    }
+  };
+
+  const handleStopVoiceRecording = async () => {
+    try {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+      const recording = recordingInstanceRef.current;
+      if (!recording) return;
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      recordingInstanceRef.current = null;
+      setIsRecordingVoice(false);
+
+      if (uri) {
+        setVoiceNoteUri(uri);
+        const secs = Math.max(1, recordSeconds);
+        const formatted = `0:${secs < 10 ? '0' : ''}${secs}`;
+        setVoiceNoteDuration(formatted);
+        Alert.alert('🎙️ Voice Note Captured!', `Your ${formatted} voice intro has been recorded. Tap Play to preview.`);
+      }
+    } catch (err) {
+      console.warn('Stop recording error:', err);
+      setIsRecordingVoice(false);
+    }
+  };
+
+  const handlePlayVoicePreview = async () => {
+    try {
+      if (isPlayingVoice) {
+        if (soundInstanceRef.current) {
+          await soundInstanceRef.current.pauseAsync();
+        }
+        setIsPlayingVoice(false);
+        return;
+      }
+
+      if (soundInstanceRef.current) {
+        await soundInstanceRef.current.unloadAsync();
+      }
+
+      if (voiceNoteUri) {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: voiceNoteUri },
+          { shouldPlay: true }
+        );
+        soundInstanceRef.current = sound;
+        setIsPlayingVoice(true);
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setIsPlayingVoice(false);
+          }
+        });
+      } else {
+        // Sample preview toggle
+        setIsPlayingVoice(true);
+        setTimeout(() => setIsPlayingVoice(false), 2500);
+      }
+    } catch (err) {
+      Alert.alert('Playback', 'Could not play voice preview.');
+      setIsPlayingVoice(false);
+    }
+  };
+
   const handleSave = () => {
     Keyboard.dismiss();
     const updated = {
@@ -2396,11 +3017,21 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
       photos,
       country: userProfile?.country || 'Ghana',
       countryFlag: userProfile?.countryFlag || '🇬🇭',
+      voiceNoteTitle,
+      voiceNoteDuration,
+      voiceNoteTranscript,
+      voiceNoteUrl: voiceNoteUri,
+      voiceNote: {
+        title: voiceNoteTitle,
+        duration: voiceNoteDuration,
+        transcript: voiceNoteTranscript,
+        uri: voiceNoteUri,
+      }
     };
     onUpdateProfile(updated);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
-    Alert.alert('Profile Saved', 'Your 3 photos and profile details have been saved!');
+    Alert.alert('Profile Saved', 'Your 3 photos, details, and voice note intro have been saved!');
   };
 
   return (
@@ -2579,6 +3210,171 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
             </TouchableOpacity>
           </View>
         </View>
+      </View>
+
+      {/* ───────────────────────────────────────────── */}
+      {/* YOUR VOICE NOTE INTRO RECORDER                 */}
+      {/* ───────────────────────────────────────────── */}
+      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1 }}>
+            YOUR VOICE NOTE INTRO 🎙️
+          </Text>
+          <View style={{ backgroundColor: 'rgba(255,184,0,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+            <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800' }}>15s Max Audio</Text>
+          </View>
+        </View>
+        <Text style={{ color: C.textSoft, fontSize: 11, marginBottom: 14, lineHeight: 16 }}>
+          Record your genuine voice to stand out on the Discovery stack. Matches listen before they connect!
+        </Text>
+
+        {/* Voice Prompts Selector */}
+        <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+          Select Voice Prompt Topic:
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+          {[
+            'My actual voice: Roast me if you dare',
+            'Saying hello in my native accent & dialect',
+            'A candid 15-second intro without a filter',
+            'Sunday morning energy & favorite music'
+          ].map((prompt, idx) => (
+            <TouchableOpacity
+              key={idx}
+              onPress={() => setVoiceNoteTitle(prompt)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                borderRadius: 14,
+                backgroundColor: voiceNoteTitle === prompt ? 'rgba(255,184,0,0.2)' : 'rgba(255,255,255,0.04)',
+                borderWidth: 1,
+                borderColor: voiceNoteTitle === prompt ? C.accent : 'rgba(255,255,255,0.08)',
+                marginRight: 8
+              }}
+            >
+              <Text style={{ color: voiceNoteTitle === prompt ? C.accent : C.textSoft, fontSize: 11, fontWeight: '700' }}>
+                {prompt}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Voice Recording Box */}
+        <View style={{
+          backgroundColor: '#0D111A',
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: isRecordingVoice ? C.red : 'rgba(255,184,0,0.3)',
+          alignItems: 'center'
+        }}>
+          {isRecordingVoice ? (
+            <View style={{ alignItems: 'center', width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: C.red }} />
+                <Text style={{ color: C.red, fontSize: 14, fontWeight: '900', letterSpacing: 1 }}>
+                  RECORDING: 0:{recordSeconds < 10 ? '0' : ''}{recordSeconds} / 0:15
+                </Text>
+              </View>
+
+              {/* Simulated Waveform Animation */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, marginVertical: 10 }}>
+                {[14, 28, 10, 24, 32, 18, 26, 12, 30, 20, 16, 28, 8, 22].map((h, i) => (
+                  <View 
+                    key={i} 
+                    style={{ 
+                      width: 4, 
+                      height: h, 
+                      backgroundColor: C.red, 
+                      borderRadius: 2,
+                      opacity: (i + recordSeconds) % 2 === 0 ? 1 : 0.4
+                    }} 
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity
+                onPress={handleStopVoiceRecording}
+                style={{
+                  backgroundColor: C.red,
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                  borderRadius: 16,
+                  marginTop: 6
+                }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>⏹ Stop & Save Audio</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View style={{ flex: 1, marginRight: 10 }}>
+                  <Text style={{ color: C.accent, fontWeight: '800', fontSize: 12 }} numberOfLines={1}>
+                    🎙 {voiceNoteTitle}
+                  </Text>
+                  <Text style={{ color: C.textMuted, fontSize: 11, marginTop: 2 }}>
+                    {voiceNoteDuration} • Audio Recorded
+                  </Text>
+                </View>
+
+                {/* Play / Pause Preview Button */}
+                <TouchableOpacity
+                  onPress={handlePlayVoicePreview}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: isPlayingVoice ? C.emerald : C.accent,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 14,
+                    gap: 6
+                  }}
+                >
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 14 }}>
+                    {isPlayingVoice ? '⏸' : '▶'}
+                  </Text>
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 11 }}>
+                    {isPlayingVoice ? 'Pause' : 'Listen'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleStartVoiceRecording}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,184,0,0.3)',
+                  paddingVertical: 11,
+                  borderRadius: 14,
+                  gap: 8
+                }}
+              >
+                <Text style={{ fontSize: 16 }}>🎙️</Text>
+                <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>
+                  {voiceNoteUri ? 'Record New Voice Intro' : 'Tap to Record Voice Intro (Microphone)'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Spoken Transcript Preview */}
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginTop: 14, marginBottom: 4 }}>
+          Voice Note Transcript / Summary
+        </Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, padding: 12, fontSize: 13, minHeight: 60, textAlignVertical: 'top' }]}
+          value={voiceNoteTranscript}
+          onChangeText={setVoiceNoteTranscript}
+          placeholder="Brief transcript or caption of your voice note..."
+          placeholderTextColor={C.textMuted}
+          multiline
+        />
       </View>
 
       {/* Edit Form */}
