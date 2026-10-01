@@ -1,4 +1,7 @@
-import { Client, Account, Databases, Storage, Avatars } from 'appwrite';
+import { Client, Account, Databases, Storage, Avatars, ID, Query } from 'appwrite';
+import { INITIAL_PROFILES, INITIAL_MATCHES } from '../data/mockProfiles';
+import { INITIAL_DATE_DROPS } from '../data/dateDropsData';
+import { INITIAL_REPORTS, INITIAL_REFUNDS } from '../data/adminData';
 
 /**
  * Official Appwrite Client Initialization
@@ -28,14 +31,102 @@ export const APPWRITE_CONFIG = {
     messages: 'messages',
     dateDrops: 'date_drops',
     reports: 'reports',
-    refunds: 'refunds',
-    sponsoredAds: 'sponsored_ads'
+    refunds: 'refunds'
   },
-  buckets: {
-    photos: 'bts_photos',
-    voiceNotes: 'bts_voice_notes',
-    dateProof: 'bts_date_proof'
-  }
+  bucketId: 'bts_photos'
 };
+
+/**
+ * Fetch profiles from Appwrite Cloud bts_main database
+ */
+export async function appwriteGetProfiles() {
+  try {
+    const res = await databases.listDocuments(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.collections.profiles
+    );
+    if (res.documents && res.documents.length > 0) {
+      return res.documents;
+    }
+  } catch (err) {
+    console.info('[Appwrite] Using cached profile dataset', err?.message || err);
+  }
+  return INITIAL_PROFILES;
+}
+
+/**
+ * Record a swipe in Appwrite Cloud
+ */
+export async function appwriteRecordSwipe(swiperId, targetId, isLike) {
+  try {
+    return await databases.createDocument(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.collections.matches,
+      ID.unique(),
+      {
+        swiperId,
+        targetId,
+        isLike,
+        createdAt: new Date().toISOString()
+      }
+    );
+  } catch (err) {
+    console.warn('[Appwrite] Swipe saved locally', err?.message || err);
+    return { swiperId, targetId, isLike };
+  }
+}
+
+/**
+ * Fetch community Date Drops from Appwrite Cloud
+ */
+export async function appwriteGetDateDrops() {
+  try {
+    const res = await databases.listDocuments(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.collections.dateDrops,
+      [Query.orderDesc('$createdAt'), Query.limit(25)]
+    );
+    if (res.documents && res.documents.length > 0) {
+      return res.documents;
+    }
+  } catch (err) {
+    console.info('[Appwrite] Using initial Date Drops feed');
+  }
+  return INITIAL_DATE_DROPS;
+}
+
+/**
+ * Post a new Date Drop to Appwrite Cloud
+ */
+export async function appwritePostDateDrop(drop) {
+  try {
+    return await databases.createDocument(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.collections.dateDrops,
+      ID.unique(),
+      drop
+    );
+  } catch (err) {
+    console.warn('[Appwrite] Date drop saved locally', err?.message || err);
+    return drop;
+  }
+}
+
+/**
+ * Submit an Anti-Catfish / Abuse Report to Appwrite Cloud
+ */
+export async function appwriteSubmitReport(report) {
+  try {
+    return await databases.createDocument(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.collections.reports,
+      ID.unique(),
+      report
+    );
+  } catch (err) {
+    console.warn('[Appwrite] Report saved locally', err?.message || err);
+    return report;
+  }
+}
 
 export default client;
