@@ -28,6 +28,7 @@ import {
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 import { 
   supabaseLoginWithEmail,
+  supabaseLoginWithGoogleMobile,
   supabaseSignUpWithEmail,
   supabaseSendOtp,
   supabaseVerifyOtp,
@@ -321,16 +322,33 @@ function OnboardingScreen({ onComplete }) {
       if (existing) {
         if (existing.user_metadata?.full_name) setFullName(existing.user_metadata.full_name);
         if (existing.email) setEmail(existing.email);
+        const existingProfile = await supabaseGetProfile(existing.id);
+        if (existingProfile && existingProfile.name) {
+          await saveLocalProfile(existingProfile);
+          onComplete(existingProfile);
+          return;
+        }
         setStep(3);
         return;
       }
 
-      // Supabase Email OTP provides standard zero-password auth
-      Alert.alert('Sign In', 'Please use your email and password or request an email verification code below.');
+      const user = await supabaseLoginWithGoogleMobile();
+      if (user) {
+        if (user.user_metadata?.full_name) setFullName(user.user_metadata.full_name);
+        if (user.email) setEmail(user.email);
+        const existingProfile = await supabaseGetProfile(user.id);
+        if (existingProfile && existingProfile.name) {
+          await saveLocalProfile(existingProfile);
+          onComplete(existingProfile);
+          return;
+        }
+        setStep(3); // Proceed to Age Check
+      }
     } catch (err) {
+      console.warn('[Google Sign-In]', err);
       Alert.alert(
-        'Authentication',
-        err?.message || 'Please sign in or register with email below.'
+        'Google Authentication',
+        err?.message || 'Could not complete Google sign-in. You can sign up with email verification below.'
       );
     } finally {
       setLoadingOAuth(false);
