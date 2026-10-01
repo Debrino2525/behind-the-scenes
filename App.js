@@ -449,14 +449,13 @@ function OnboardingScreen({ onComplete }) {
   if (step === 1) {
     return (
       <View style={[s.fullCenter, { backgroundColor: C.bg, paddingHorizontal: 28 }]}>
-        <View style={{ width: 68, height: 68, borderRadius: 22, backgroundColor: C.accent, justifyContent: 'center', alignItems: 'center', marginBottom: 16, shadowColor: C.accent, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 }}>
-          <Text style={{ fontSize: 34 }}>🎬</Text>
-        </View>
+        {/* Official Brand Logo */}
+        <Image 
+          source={require('./assets/bts-official-logo.png')} 
+          style={{ width: 190, height: 190, resizeMode: 'contain', marginBottom: 6 }} 
+        />
 
-        <Text style={[s.brandTitle, { fontSize: 24, letterSpacing: 2.5, textAlign: 'center' }]}>
-          BEHIND THE SCENES
-        </Text>
-        <Text style={{ color: '#F2E9D8', letterSpacing: 2, marginTop: 4, fontWeight: '800', fontSize: 11 }}>
+        <Text style={{ color: '#F2E9D8', letterSpacing: 3, marginTop: 4, fontWeight: '800', fontSize: 11, textAlign: 'center' }}>
           REAL VIBES • NO FAKE LIFE
         </Text>
         <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 14, lineHeight: 20, maxWidth: 320 }]}>
@@ -1306,6 +1305,8 @@ function ChatScreen({ match, onClose }) {
     { id: 1, sender: 'them', text: match.lastMessage || "Hey! Nice to connect. How's your week going?", time: '12:04 PM' }
   ]);
   const [input, setInput] = useState('');
+  const [showIcebreakers, setShowIcebreakers] = useState(true);
+  const flatListRef = useRef(null);
 
   const send = (txt) => {
     const content = txt || input;
@@ -1313,13 +1314,14 @@ function ChatScreen({ match, onClose }) {
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setMessages(prev => [...prev, { id: Date.now(), sender: 'me', text: content, time: now }]);
     setInput('');
+    setShowIcebreakers(false);
 
     setTimeout(() => {
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: 'them',
-        text: content.toLowerCase().includes('food') || content.toLowerCase().includes('jollof')
-          ? "Say no more! If it has extra spice, I am already on my way."
+        text: content.toLowerCase().includes('food') || content.toLowerCase().includes('jollof') || content.toLowerCase().includes('waakye') || content.toLowerCase().includes('kelewele')
+          ? "Say no more! If it has extra shito, I am already on my way."
           : "Ah charlie! You have jokes! Are we doing Buka in Osu or somewhere quiet?",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
@@ -1332,47 +1334,92 @@ function ChatScreen({ match, onClose }) {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           {/* Chat Header */}
           <View style={s.chatHeader}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={{ color: C.textSoft, fontSize: 22 }}>←</Text>
+            <TouchableOpacity 
+              onPress={onClose} 
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center' }}
+            >
+              <Text style={{ color: C.text, fontSize: 18, fontWeight: '700' }}>←</Text>
             </TouchableOpacity>
-            <Image source={{ uri: match.photo }} style={{ width: 36, height: 36, borderRadius: 18, marginLeft: 12 }} />
-            <View style={{ marginLeft: 10, flex: 1 }}>
-              <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>{match.name}</Text>
-              <Text style={[s.bodyTiny, { color: match.online ? C.emerald : C.textMuted }]}>
-                {match.online ? 'Online now' : 'Active today'}
+            
+            <View style={{ position: 'relative', marginLeft: 12 }}>
+              <Image source={{ uri: match.photo }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: C.accent }} />
+              {match.online && (
+                <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: C.emerald, borderWidth: 1.5, borderColor: C.bg }} />
+              )}
+            </View>
+
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[s.bodySmall, { color: C.text, fontWeight: '800', fontSize: 15 }]}>{match.name}</Text>
+                <View style={{ backgroundColor: 'rgba(212,175,55,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: C.accent }}>
+                  <Text style={{ color: C.accent, fontSize: 9, fontWeight: '800' }}>✓ Gold Verified</Text>
+                </View>
+              </View>
+              <Text style={[s.bodyTiny, { color: match.online ? C.emerald : C.textMuted, marginTop: 1 }]}>
+                {match.online ? 'Online now' : 'Active today'} • {match.country || 'Ghana'}
               </Text>
             </View>
           </View>
 
           {/* Messages */}
           <FlatList
+            ref={flatListRef}
             data={messages}
             keyExtractor={m => String(m.id)}
-            contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
+            contentContainerStyle={{ padding: 16, paddingBottom: 12, flexGrow: 1 }}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             renderItem={({ item }) => (
               <View style={[s.msgBubbleWrap, item.sender === 'me' && { alignItems: 'flex-end' }]}>
                 <View style={[s.msgBubble, item.sender === 'me' ? s.msgMe : s.msgThem]}>
-                  <Text style={[s.bodySmall, { color: item.sender === 'me' ? '#000' : '#E2E8F0' }]}>{item.text}</Text>
+                  <Text style={[s.bodySmall, { color: item.sender === 'me' ? '#000' : '#E2E8F0', lineHeight: 20 }]}>{item.text}</Text>
                 </View>
-                <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2, marginHorizontal: 4 }]}>{item.time}</Text>
+                <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 4, marginHorizontal: 4, fontSize: 10 }]}>{item.time}</Text>
               </View>
             )}
           />
 
-          {/* Icebreakers */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: 1, borderTopColor: C.border }}>
-            <TouchableOpacity style={s.iceChip} onPress={() => send("Are we having jollof or waakye? 🍛")}>
-              <Text style={[s.bodyTiny, { color: C.textSoft }]}>🍛 Jollof or Waakye?</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.iceChip} onPress={() => send("Loved the voice note! Tell me more.")}>
-              <Text style={[s.bodyTiny, { color: C.textSoft }]}>🎙 Loved the voice note!</Text>
-            </TouchableOpacity>
-          </ScrollView>
+          {/* Clean, Compact Horizontal Icebreakers Bar (Fixed Height, Zero Vertical Stretch) */}
+          {showIcebreakers && (
+            <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', backgroundColor: '#0B0E16', paddingTop: 8, paddingBottom: 6 }}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 12, height: 38 }}
+                style={{ maxHeight: 38, flexGrow: 0 }}
+              >
+                {[
+                  { icon: '🍲', text: 'Jollof or Waakye debate?' },
+                  { icon: '🎙️', text: 'Loved your voice note!' },
+                  { icon: '🌶️', text: "Kelewele date? I'm in!" },
+                  { icon: '✨', text: 'Tell me the BTS candid story' },
+                ].map((chip, idx) => (
+                  <TouchableOpacity 
+                    key={idx} 
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(255,184,0,0.08)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,184,0,0.25)',
+                      paddingHorizontal: 12,
+                      height: 32,
+                      borderRadius: 16,
+                      marginRight: 8
+                    }} 
+                    onPress={() => send(`${chip.text} ${chip.icon}`)}
+                  >
+                    <Text style={{ fontSize: 12, marginRight: 5 }}>{chip.icon}</Text>
+                    <Text style={{ color: '#F1F5F9', fontSize: 11, fontWeight: '700' }}>{chip.text}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
-          {/* Input */}
-          <View style={s.chatInput}>
+          {/* Chat Input Bar */}
+          <View style={[s.chatInput, { backgroundColor: '#10131B', paddingVertical: 10 }]}>
             <TextInput
-              style={s.chatTextInput}
+              style={[s.chatTextInput, { fontSize: 14 }]}
               placeholder={`Message ${match.name}...`}
               placeholderTextColor={C.textMuted}
               value={input}
@@ -1380,7 +1427,11 @@ function ChatScreen({ match, onClose }) {
               onSubmitEditing={() => send()}
               returnKeyType="send"
             />
-            <TouchableOpacity style={s.sendBtn} onPress={() => send()} disabled={!input.trim()}>
+            <TouchableOpacity 
+              style={[s.sendBtn, { opacity: input.trim() ? 1 : 0.4 }]} 
+              onPress={() => send()} 
+              disabled={!input.trim()}
+            >
               <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>→</Text>
             </TouchableOpacity>
           </View>
@@ -1856,8 +1907,8 @@ export default function App() {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => setTab('discover')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={s.logoBoxSm}><Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>★</Text></View>
+        <TouchableOpacity onPress={() => setTab('discover')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Image source={require('./assets/bts-official-logo.png')} style={{ width: 34, height: 34, resizeMode: 'contain' }} />
           <View>
             <Text style={s.brandTitleSm}>BEHIND THE SCENES</Text>
             <Text style={[s.bodyTiny, { color: C.textMuted, letterSpacing: 1.5 }]}>REAL VIBES • AFRICA</Text>
