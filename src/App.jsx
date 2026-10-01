@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import AgeGate from './components/AgeGate';
+import OnboardingFlow from './components/OnboardingFlow';
 import Header from './components/Header';
 import CardStack from './components/CardStack';
 import BtsRevealModal from './components/BtsRevealModal';
@@ -22,9 +22,6 @@ import { INITIAL_LIKES_YOU } from './data/dateDropsData';
 import confetti from 'canvas-confetti';
 
 export default function App() {
-  // Age Gate — must pass before accessing app (Google Play + Apple requirement)
-  const [ageVerified, setAgeVerified] = useState(false);
-
   const [profiles, setProfiles] = useState(INITIAL_PROFILES);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matches, setMatches] = useState(INITIAL_MATCHES);
@@ -156,9 +153,25 @@ export default function App() {
 
   const unreadMatchesCount = matches.filter(m => m.unread).length;
 
-  // Age Gate — blocks entire app until verified
-  if (!ageVerified) {
-    return <AgeGate onVerified={() => setAgeVerified(true)} />;
+  // User Profile & Authentication Gate
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('bts_user_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  if (!userProfile) {
+    return (
+      <OnboardingFlow 
+        onComplete={(newProfile) => {
+          setUserProfile(newProfile);
+          setIsUserVerified(Boolean(newProfile.verified || newProfile.liveness_verified));
+        }} 
+      />
+    );
   }
 
   return (
