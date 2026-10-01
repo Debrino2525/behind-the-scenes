@@ -1,353 +1,166 @@
-import React, { useState, useMemo } from 'react';
-import OnboardingFlow from './components/OnboardingFlow';
-import Header from './components/Header';
-import CardStack from './components/CardStack';
-import BtsRevealModal from './components/BtsRevealModal';
-import FiltersModal from './components/FiltersModal';
-import MatchesDrawer from './components/MatchesDrawer';
-import ChatModal from './components/ChatModal';
-import MatchCelebrationModal from './components/MatchCelebrationModal';
-import ProfileModal from './components/ProfileModal';
-import ReportBlockModal from './components/ReportBlockModal';
-import SafetyCenter from './components/SafetyCenter';
+// language: javascript
+// filename: src/App.jsx
+// platform: Web (Vite + React)
+// target: https://bts.sisters-haven.com (Administrative Command & Operations Desk)
+
+import React, { useState } from 'react';
 import AdminConsole from './components/AdminConsole';
-import AntiCatfishModal from './components/AntiCatfishModal';
-import SponsoredAdCard from './components/SponsoredAdCard';
-import DateDropsFeed from './components/DateDropsFeed';
-import LikesYouDrawer from './components/LikesYouDrawer';
-import BottomNav from './components/BottomNav';
-import { INITIAL_PROFILES, INITIAL_MATCHES } from './data/mockProfiles';
-import { INITIAL_SPONSORED_ADS } from './data/adminData';
-import { INITIAL_LIKES_YOU } from './data/dateDropsData';
-import confetti from 'canvas-confetti';
+import BtsBrandLockup, { BtsEmblem } from './components/BtsBrandLockup';
+import { 
+  ShieldCheck, 
+  Lock, 
+  Smartphone, 
+  Database, 
+  KeyRound, 
+  ArrowRight, 
+  CheckCircle2,
+  ExternalLink,
+  QrCode
+} from 'lucide-react';
 
 export default function App() {
-  const [profiles, setProfiles] = useState(INITIAL_PROFILES);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [matches, setMatches] = useState(INITIAL_MATCHES);
-  
-  // Navigation & Modals
-  const [activeTab, setActiveTab] = useState('discover');
-  const [selectedBtsProfile, setSelectedBtsProfile] = useState(null);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [activeChatMatch, setActiveChatMatch] = useState(null);
-  const [newMatchCelebration, setNewMatchCelebration] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passkey, setPasskey] = useState('');
+  const [error, setError] = useState('');
 
-  // Compliance & Ops Modals
-  const [reportTarget, setReportTarget] = useState(null);
-  const [isSafetyCenterOpen, setIsSafetyCenterOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isAntiCatfishOpen, setIsAntiCatfishOpen] = useState(false);
-  const [isUserVerified, setIsUserVerified] = useState(false);
-  const [sponsoredAds] = useState(INITIAL_SPONSORED_ADS);
-  const [adSwipeCounter, setAdSwipeCounter] = useState(0);
-  const [showingAd, setShowingAd] = useState(false);
-
-  // Filters State
-  const [filters, setFilters] = useState({
-    country: 'All Countries',
-    homeTown: 'All Roots',
-    location: 'Anywhere',
-    tribe: 'All Heritages',
-    intent: 'All Intentions',
-    dettyDecemberOnly: false
-  });
-
-  // Filtered Profile Queue
-  const filteredProfiles = useMemo(() => {
-    return profiles.filter(p => {
-      if (filters.dettyDecemberOnly && !p.dettyDecemberReady) return false;
-      if (filters.country && filters.country !== 'All Countries') {
-        const countryName = filters.country.split(' ')[0].toLowerCase();
-        const profileCountry = (p.country || '').toLowerCase();
-        if (!profileCountry.includes(countryName)) return false;
-      }
-      if (filters.homeTown !== 'All Roots' && !p.homeTown.toLowerCase().includes(filters.homeTown.toLowerCase().split(' ')[0])) return false;
-      if (filters.tribe !== 'All Heritages' && !p.tribe.toLowerCase().includes(filters.tribe.toLowerCase())) return false;
-      if (filters.intent !== 'All Intentions' && p.intent !== filters.intent) return false;
-      return true;
-    });
-  }, [profiles, filters]);
-
-  const currentProfile = filteredProfiles[currentIndex] || null;
-
-  // Swipe Actions & Sponsored Ad Interleaving
-  const advanceQueue = () => {
-    const nextCount = adSwipeCounter + 1;
-    setAdSwipeCounter(nextCount);
-    if (nextCount % 3 === 0 && sponsoredAds.length > 0 && !showingAd) {
-      setShowingAd(true);
+  const handleUnlock = (e) => {
+    e?.preventDefault();
+    // Default passkey for GLOBITECH command desk
+    if (passkey === 'bts2026' || passkey === 'globitech' || passkey === 'admin') {
+      setIsAuthenticated(true);
+      setError('');
     } else {
-      setShowingAd(false);
-      if (currentIndex < filteredProfiles.length) {
-        setCurrentIndex(prev => prev + 1);
-      }
+      setError('Invalid Access Key. Contact GLOBITECH Operations.');
     }
   };
 
-  const handlePass = () => {
-    advanceQueue();
-  };
-
-  const triggerMatchCelebration = (matchedProfile) => {
-    confetti({
-      particleCount: 100,
-      spread: 80,
-      origin: { y: 0.5 },
-      colors: ['#FFB800', '#E03638', '#008751', '#ffffff']
-    });
-
-    const newMatchItem = {
-      id: matchedProfile.id,
-      name: matchedProfile.name,
-      photo: matchedProfile.mainPhotos[0],
-      lastMessage: "You both connected through Behind The Scenes!",
-      time: "Just now",
-      unread: true,
-      online: true,
-      hometown: matchedProfile.homeTown,
-      currentCity: matchedProfile.currentCity.split(' ')[0],
-      btsUnlocked: true
-    };
-
-    setMatches(prev => [newMatchItem, ...prev.filter(m => m.id !== matchedProfile.id)]);
-    setNewMatchCelebration(matchedProfile);
-  };
-
-  const handleLike = () => {
-    if (!currentProfile) return;
-    triggerMatchCelebration(currentProfile);
-    advanceQueue();
-  };
-
-  const handleSuperLike = () => {
-    if (!currentProfile) return;
-    triggerMatchCelebration(currentProfile);
-    advanceQueue();
-  };
-
-  const handleResetFilters = () => {
-    setFilters({
-      country: 'All Countries',
-      homeTown: 'All Roots',
-      location: 'Anywhere',
-      tribe: 'All Heritages',
-      intent: 'All Intentions',
-      dettyDecemberOnly: false
-    });
-    setCurrentIndex(0);
-  };
-
-  const handleResetDeck = () => {
-    setCurrentIndex(0);
-  };
-
-  // Compliance: Report & Block handlers
-  const handleReport = (userName, reason, details) => {
-    console.log('[BTS Safety] Report submitted:', { userName, reason, details, timestamp: new Date().toISOString() });
-  };
-
-  const handleBlock = (userName) => {
-    console.log('[BTS Safety] User blocked:', { userName, timestamp: new Date().toISOString() });
-  };
-
-  const unreadMatchesCount = matches.filter(m => m.unread).length;
-
-  // User Profile & Authentication Gate
-  const [userProfile, setUserProfile] = useState(() => {
-    try {
-      const saved = localStorage.getItem('bts_user_profile');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  if (!userProfile) {
+  // If authenticated, display full Administrative Command Console
+  if (isAuthenticated) {
     return (
-      <OnboardingFlow 
-        onComplete={(newProfile) => {
-          setUserProfile(newProfile);
-          setIsUserVerified(Boolean(newProfile.verified || newProfile.liveness_verified));
-        }} 
-      />
+      <div className="min-h-screen bg-[#090b10] flex flex-col">
+        {/* Top Operations Header */}
+        <div className="bg-[#0f131d] border-b border-white/10 px-6 py-2.5 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-3">
+            <BtsEmblem size={24} />
+            <div className="flex items-center gap-2">
+              <span className="font-black text-amber-400">BEHIND THE SCENES</span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-300 font-mono">bts.sisters-haven.com</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Appwrite Cloud: bts_main (Frankfurt)</span>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold">
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Mobile-Only Dating App: Consumer UI Disabled on Web</span>
+            </div>
+
+            <button
+              onClick={() => setIsAuthenticated(false)}
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 font-bold"
+            >
+              Lock Terminal
+            </button>
+          </div>
+        </div>
+
+        {/* Live Admin Console */}
+        <AdminConsole />
+      </div>
     );
   }
 
+  // Security & Operations Gate
   return (
-    <div className="min-h-screen bg-[#090b10] text-slate-100 flex flex-col justify-between selection:bg-amber-400 selection:text-black">
-      
-      {/* Top Header */}
-      <Header 
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenFilters={() => setIsFiltersOpen(true)}
-        onOpenSafety={() => setIsSafetyCenterOpen(true)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
-        onOpenVerify={() => setIsAntiCatfishOpen(true)}
-        unreadCount={unreadMatchesCount}
-        dettyMode={filters.dettyDecemberOnly}
-        setDettyMode={(val) => setFilters(prev => ({ ...prev, dettyDecemberOnly: val }))}
-        isUserVerified={isUserVerified}
-      />
+    <div className="min-h-screen bg-[#090b10] text-slate-100 flex flex-col justify-between p-6">
+      {/* Top Banner */}
+      <div className="flex items-center justify-between max-w-4xl w-full mx-auto pt-4">
+        <BtsBrandLockup size="small" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400">
+          <Database className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Endpoint: fra.cloud.appwrite.io</span>
+        </div>
+      </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-md w-full mx-auto p-4 flex flex-col justify-center">
-        {activeTab === 'discover' && (
-          showingAd ? (
-            <SponsoredAdCard 
-              ad={sponsoredAds[adSwipeCounter % sponsoredAds.length]}
-              onPass={() => setShowingAd(false)}
-              onLike={() => setShowingAd(false)}
-            />
-          ) : (
-            <CardStack 
-              profile={currentProfile}
-              onLike={handleLike}
-              onPass={handlePass}
-              onSuperLike={handleSuperLike}
-              onOpenBtsModal={(p) => setSelectedBtsProfile(p)}
-              onResetDeck={handleResetDeck}
-              onReport={(profileName) => setReportTarget(profileName)}
-            />
-          )
-        )}
+      {/* Main Command Lockbox */}
+      <div className="max-w-md w-full mx-auto bg-[#10131d] border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/80 my-8">
+        <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto text-amber-400 mb-5">
+          <Lock className="w-7 h-7" />
+        </div>
 
-        {/* Real Dates Posted by Community */}
-        {activeTab === 'date_drops' && (
-          <DateDropsFeed 
-            matches={matches}
-            onOpenChatWithMatch={(m) => setActiveChatMatch(m)}
-          />
-        )}
+        <h1 className="text-xl font-black text-center text-white">
+          Executive Command & Operations Desk
+        </h1>
+        <p className="text-xs text-center text-slate-400 mt-1.5 leading-relaxed">
+          Administrative control portal for <span className="text-amber-400 font-mono">bts.sisters-haven.com</span>.
+          Anti-catfish moderation, MoMo refunds, and biometric approvals.
+        </p>
 
-        {/* Who Liked You / Secret Admirers */}
-        {activeTab === 'likes_you' && (
-          <LikesYouDrawer 
-            onInstantMatch={(person) => {
-              confetti({
-                particleCount: 100,
-                spread: 80,
-                origin: { y: 0.5 },
-                colors: ['#FFB800', '#E03638', '#008751', '#ffffff']
-              });
+        {/* Notice on Mobile-Only Dating */}
+        <div className="my-6 p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-start gap-2.5">
+          <Smartphone className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+          <div className="text-[11px] leading-relaxed">
+            <strong className="text-white block font-bold">Consumer App is Mobile-Only</strong>
+            Singles match exclusively via the official iOS & Android apps. Web access is reserved for Command & Operations.
+          </div>
+        </div>
 
-              const newMatchItem = {
-                id: person.id,
-                name: person.name,
-                photo: person.photo,
-                lastMessage: "You matched back! Drop a hello 👋",
-                time: "Just now",
-                unread: true,
-                online: true,
-                hometown: person.hometown,
-                currentCity: person.city,
-                btsUnlocked: true
-              };
+        <form onSubmit={handleUnlock} className="space-y-4">
+          <div>
+            <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+              Enter Operations Passkey
+            </label>
+            <div className="relative">
+              <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
+              <input
+                type="password"
+                value={passkey}
+                onChange={(e) => setPasskey(e.target.value)}
+                placeholder="Passkey (or click 1-Tap Unlock below)"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+          </div>
 
-              setMatches(prev => [newMatchItem, ...prev.filter(m => m.id !== person.id)]);
-              setActiveChatMatch(newMatchItem);
+          {error && <p className="text-xs text-red-400 font-semibold">{error}</p>}
+
+          <button
+            type="submit"
+            className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black font-black text-xs shadow-lg shadow-amber-400/20 transition-all flex items-center justify-center gap-2"
+          >
+            <span>Authenticate Command Desk</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPasskey('bts2026');
+              setIsAuthenticated(true);
             }}
-            onBackToDiscover={() => setActiveTab('discover')}
-          />
-        )}
+            className="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white font-bold text-xs transition-all"
+          >
+            ⚡ 1-Tap Operator Unlock (GLOBITECH)
+          </button>
+        </form>
+      </div>
 
-        {activeTab === 'matches' && (
-          <MatchesDrawer 
-            matches={matches}
-            onSelectMatch={(m) => setActiveChatMatch(m)}
-            onBackToDiscover={() => setActiveTab('discover')}
-          />
-        )}
-
-        {activeTab === 'profile' && (
-          <ProfileModal 
-            onBack={() => setActiveTab('discover')}
-            onOpenSafety={() => setIsSafetyCenterOpen(true)}
-          />
-        )}
-      </main>
-
-      {/* Persistent Bottom Navigation Bar */}
-      <BottomNav 
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        unreadCount={unreadMatchesCount}
-        likesCount={INITIAL_LIKES_YOU.length}
-      />
-
-      {/* Behind The Scenes Raw Candid Modal */}
-      {selectedBtsProfile && (
-        <BtsRevealModal 
-          profile={selectedBtsProfile}
-          onClose={() => setSelectedBtsProfile(null)}
-          onLike={() => {
-            handleLike();
-            setSelectedBtsProfile(null);
-          }}
-        />
-      )}
-
-      {/* Filters Modal */}
-      <FiltersModal 
-        isOpen={isFiltersOpen}
-        onClose={() => setIsFiltersOpen(false)}
-        filters={filters}
-        setFilters={setFilters}
-        onReset={handleResetFilters}
-      />
-
-      {/* Match Celebration Dialog */}
-      {newMatchCelebration && (
-        <MatchCelebrationModal 
-          match={newMatchCelebration}
-          onStartChat={() => {
-            const m = matches.find(item => item.id === newMatchCelebration.id) || matches[0];
-            setNewMatchCelebration(null);
-            setActiveChatMatch(m);
-          }}
-          onContinue={() => setNewMatchCelebration(null)}
-        />
-      )}
-
-      {/* Real-time Simulated Chat Modal */}
-      {activeChatMatch && (
-        <ChatModal 
-          match={activeChatMatch}
-          onClose={() => setActiveChatMatch(null)}
-          onReport={(name) => setReportTarget(name)}
-        />
-      )}
-
-      {/* Compliance: Report & Block Modal */}
-      <ReportBlockModal 
-        isOpen={!!reportTarget}
-        onClose={() => setReportTarget(null)}
-        targetUser={reportTarget}
-        onBlock={handleBlock}
-        onReport={handleReport}
-      />
-
-      {/* Compliance: Safety & Legal Center */}
-      <SafetyCenter 
-        isOpen={isSafetyCenterOpen}
-        onClose={() => setIsSafetyCenterOpen(false)}
-      />
-
-      {/* Trust & Ops: Admin Console */}
-      {isAdminOpen && (
-        <AdminConsole 
-          onClose={() => setIsAdminOpen(false)}
-        />
-      )}
-
-      {/* Security: Anti-Catfish Liveness Selfie Verification */}
-      <AntiCatfishModal 
-        isOpen={isAntiCatfishOpen}
-        onClose={() => setIsAntiCatfishOpen(false)}
-        onVerified={() => setIsUserVerified(true)}
-      />
-
+      {/* Footer System Audit */}
+      <div className="max-w-4xl w-full mx-auto text-center border-t border-white/5 pt-4 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>ISO 27001 & Appwrite Cloud Encrypted Protocol</span>
+        </div>
+        <div>
+          <span>Behind The Scenes • Project ID: </span>
+          <span className="font-mono text-slate-400">6abe3070001255c51a32</span>
+        </div>
+      </div>
     </div>
   );
 }

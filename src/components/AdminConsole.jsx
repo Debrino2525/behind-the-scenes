@@ -75,20 +75,28 @@ export default function AdminConsole({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#090b10] text-slate-100 flex flex-col overflow-hidden animate-in fade-in">
+    <div className="w-full flex-1 bg-[#090b10] text-slate-100 flex flex-col overflow-hidden">
       
       {/* Top Admin Bar */}
       <header className="px-6 py-3.5 border-b border-white/10 bg-[#10131c] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button 
-            onClick={onClose}
-            className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-bold"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Return to App</span>
-          </button>
-          
-          <div className="h-4 w-[1px] bg-white/10" />
+          {onClose ? (
+            <>
+              <button 
+                onClick={onClose}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-bold"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Return</span>
+              </button>
+              <div className="h-4 w-[1px] bg-white/10" />
+            </>
+          ) : (
+            <div className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>LIVE CLOUD OPS</span>
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs">
