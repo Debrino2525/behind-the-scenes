@@ -104,7 +104,7 @@ function DimmedAppBackground({ screen = 'discover', step = null, children = null
 
   if (children) {
     return (
-      <View style={[{ flex: 1, backgroundColor: '#07090E' }, style]}>
+      <View style={[{ flex: 1, width: '100%', height: '100%', backgroundColor: '#07090E' }, style]}>
         <Image
           source={activeImage}
           style={[
@@ -115,7 +115,7 @@ function DimmedAppBackground({ screen = 'discover', step = null, children = null
         <View
           style={[
             StyleSheet.absoluteFillObject,
-            { backgroundColor: 'rgba(7, 9, 14, 0.65)' }
+            { width: '100%', height: '100%', backgroundColor: 'rgba(7, 9, 14, 0.65)' }
           ]}
           pointerEvents="none"
         />
@@ -1879,7 +1879,7 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
   const nextPhoto = () => setPhotoIdx((photoIdx + 1) % profile.mainPhotos.length);
 
   return (
-    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+    <ScrollView style={{ flex: 1, width: '100%' }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
       {/* Photo */}
       <TouchableOpacity activeOpacity={0.95} onPress={nextPhoto}>
         <View style={s.photoContainer}>
@@ -4174,7 +4174,7 @@ export default function App() {
       <StatusBar barStyle="light-content" />
 
       {/* Full height column with explicit top/bottom padding from insets */}
-      <View style={{ flex: 1, paddingTop: TOP_INSET, paddingBottom: BOTTOM_INSET }}>
+      <View style={{ flex: 1, width: '100%', height: '100%', paddingTop: TOP_INSET, paddingBottom: BOTTOM_INSET }}>
 
         {/* Header */}
         <View style={s.header}>
@@ -4197,7 +4197,7 @@ export default function App() {
         </View>
 
         {/* Content Area */}
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, width: '100%' }}>
           {tab === 'discover' && (
             <ProfileCard
               profile={currentProfile}
@@ -4338,8 +4338,18 @@ const s = StyleSheet.create({
 
   textInput: { width: '80%', padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: C.border, color: C.text, fontSize: 16, textAlign: 'center', marginTop: 20 },
 
-  // Header
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border },
+  header: { 
+    width: '100%', 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 16, 
+    paddingVertical: 12, 
+    borderBottomWidth: 1, 
+    borderBottomColor: C.border,
+    backgroundColor: 'rgba(9, 11, 16, 0.85)',
+    zIndex: 30
+  },
   logoBoxSm: { width: 28, height: 28, borderRadius: 10, backgroundColor: C.accent, justifyContent: 'center', alignItems: 'center' },
   brandTitleSm: { fontSize: 13, fontWeight: '900', color: C.accent, letterSpacing: 1.5 },
   headerBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
@@ -4425,7 +4435,7 @@ const s = StyleSheet.create({
   likesCard: { flex: 1, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
 
   // Bottom Navigation Bar
-  bottomBar: { position: 'absolute', bottom: 12, left: 16, right: 16, height: 60, borderRadius: 30, backgroundColor: 'rgba(15,18,26,0.95)', borderWidth: 1, borderColor: C.borderLight, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 12 },
+  bottomBar: { position: 'absolute', bottom: 12, left: 16, right: 16, height: 60, borderRadius: 30, backgroundColor: 'rgba(15,18,26,0.95)', borderWidth: 1, borderColor: C.borderLight, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 12, zIndex: 50 },
   bottomTabBtn: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   bottomTabIcon: { fontSize: 18 },
   bottomTabText: { fontSize: 9, color: C.textMuted, marginTop: 2, fontWeight: '700' },
