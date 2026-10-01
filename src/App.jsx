@@ -13,8 +13,12 @@ import SafetyCenter from './components/SafetyCenter';
 import AdminConsole from './components/AdminConsole';
 import AntiCatfishModal from './components/AntiCatfishModal';
 import SponsoredAdCard from './components/SponsoredAdCard';
+import DateDropsFeed from './components/DateDropsFeed';
+import LikesYouDrawer from './components/LikesYouDrawer';
+import BottomNav from './components/BottomNav';
 import { INITIAL_PROFILES, INITIAL_MATCHES } from './data/mockProfiles';
 import { INITIAL_SPONSORED_ADS } from './data/adminData';
+import { INITIAL_LIKES_YOU } from './data/dateDropsData';
 import confetti from 'canvas-confetti';
 
 export default function App() {
@@ -196,6 +200,45 @@ export default function App() {
           )
         )}
 
+        {/* Real Dates Posted by Community */}
+        {activeTab === 'date_drops' && (
+          <DateDropsFeed 
+            matches={matches}
+            onOpenChatWithMatch={(m) => setActiveChatMatch(m)}
+          />
+        )}
+
+        {/* Who Liked You / Secret Admirers */}
+        {activeTab === 'likes_you' && (
+          <LikesYouDrawer 
+            onInstantMatch={(person) => {
+              confetti({
+                particleCount: 100,
+                spread: 80,
+                origin: { y: 0.5 },
+                colors: ['#FFB800', '#E03638', '#008751', '#ffffff']
+              });
+
+              const newMatchItem = {
+                id: person.id,
+                name: person.name,
+                photo: person.photo,
+                lastMessage: "You matched back! Drop a hello 👋",
+                time: "Just now",
+                unread: true,
+                online: true,
+                hometown: person.hometown,
+                currentCity: person.city,
+                btsUnlocked: true
+              };
+
+              setMatches(prev => [newMatchItem, ...prev.filter(m => m.id !== person.id)]);
+              setActiveChatMatch(newMatchItem);
+            }}
+            onBackToDiscover={() => setActiveTab('discover')}
+          />
+        )}
+
         {activeTab === 'matches' && (
           <MatchesDrawer 
             matches={matches}
@@ -211,6 +254,14 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Persistent Bottom Navigation Bar */}
+      <BottomNav 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        unreadCount={unreadMatchesCount}
+        likesCount={INITIAL_LIKES_YOU.length}
+      />
 
       {/* Behind The Scenes Raw Candid Modal */}
       {selectedBtsProfile && (
