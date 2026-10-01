@@ -7,8 +7,8 @@ import { INITIAL_PROFILES, INITIAL_MATCHES } from '../data/mockProfiles';
 import { INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from '../data/dateDropsData';
 import { INITIAL_REPORTS, INITIAL_REFUNDS, INITIAL_SPONSORED_ADS } from '../data/adminData';
 
-const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'https://mbeuauxvofhnwigpzmdl.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZXVhdXh2b2ZobndpZ3B6bWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4NjY2OTgsImV4cCI6MjEwNjQ0MjY5OH0.ExE7r4PTcw4_b25fwlU4z84P3nlxU6UBXk5KmqT43FY';
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 

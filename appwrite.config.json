@@ -1,3 +1,349 @@
 {
-    "projectId": "6abe3070001255c51a32"
+    "projectId": "6abe3070001255c51a32",
+    "endpoint": "https://fra.cloud.appwrite.io/v1",
+    "databases": {
+        "bts_main": {
+            "$id": "bts_main",
+            "name": "bts_main",
+            "tables": {
+                "profiles": {
+                    "$id": "profiles",
+                    "name": "User Profiles",
+                    "columns": [
+                        {
+                            "$id": "name",
+                            "name": "name",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "age",
+                            "name": "age",
+                            "type": "integer",
+                            "required": true
+                        },
+                        {
+                            "$id": "gender",
+                            "name": "gender",
+                            "type": "text",
+                            "size": 50,
+                            "required": true
+                        },
+                        {
+                            "$id": "country",
+                            "name": "country",
+                            "type": "text",
+                            "size": 100,
+                            "required": true
+                        },
+                        {
+                            "$id": "countryFlag",
+                            "name": "countryFlag",
+                            "type": "text",
+                            "size": 10
+                        },
+                        {
+                            "$id": "currentCity",
+                            "name": "currentCity",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "homeTown",
+                            "name": "homeTown",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "tribe",
+                            "name": "tribe",
+                            "type": "text",
+                            "size": 100
+                        },
+                        {
+                            "$id": "intent",
+                            "name": "intent",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "btsCaption",
+                            "name": "btsCaption",
+                            "type": "text",
+                            "size": 1000
+                        },
+                        {
+                            "$id": "btsHabit",
+                            "name": "btsHabit",
+                            "type": "text",
+                            "size": 1000
+                        },
+                        {
+                            "$id": "verified",
+                            "name": "verified",
+                            "type": "boolean",
+                            "default": false
+                        },
+                        {
+                            "$id": "photo",
+                            "name": "photo",
+                            "type": "text",
+                            "size": 1000
+                        },
+                        {
+                            "$id": "photos",
+                            "name": "photos",
+                            "type": "text",
+                            "size": 5000
+                        },
+                        {
+                            "$id": "voiceNoteUrl",
+                            "name": "voiceNoteUrl",
+                            "type": "text",
+                            "size": 1000
+                        },
+                        {
+                            "$id": "voiceNoteDuration",
+                            "name": "voiceNoteDuration",
+                            "type": "text",
+                            "size": 50
+                        },
+                        {
+                            "$id": "voiceNoteTranscript",
+                            "name": "voiceNoteTranscript",
+                            "type": "text",
+                            "size": 2000
+                        },
+                        {
+                            "$id": "interestedInGender",
+                            "name": "interestedInGender",
+                            "type": "text",
+                            "size": 50
+                        },
+                        {
+                            "$id": "preferredMinAge",
+                            "name": "preferredMinAge",
+                            "type": "integer"
+                        },
+                        {
+                            "$id": "preferredMaxAge",
+                            "name": "preferredMaxAge",
+                            "type": "integer"
+                        }
+                    ]
+                },
+                "matches": {
+                    "$id": "matches",
+                    "name": "Matches",
+                    "columns": [
+                        {
+                            "$id": "swiperId",
+                            "name": "swiperId",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "targetId",
+                            "name": "targetId",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "isLike",
+                            "name": "isLike",
+                            "type": "boolean",
+                            "required": true
+                        }
+                    ]
+                },
+                "messages": {
+                    "$id": "messages",
+                    "name": "Messages",
+                    "columns": [
+                        {
+                            "$id": "matchId",
+                            "name": "matchId",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "senderId",
+                            "name": "senderId",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "content",
+                            "name": "content",
+                            "type": "text",
+                            "size": 5000,
+                            "required": true
+                        },
+                        {
+                            "$id": "read",
+                            "name": "read",
+                            "type": "boolean",
+                            "default": false
+                        }
+                    ]
+                },
+                "date_drops": {
+                    "$id": "date_drops",
+                    "name": "Date Drops",
+                    "columns": [
+                        {
+                            "$id": "coupleTitle",
+                            "name": "coupleTitle",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "matchTag",
+                            "name": "matchTag",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "photoUrl",
+                            "name": "photoUrl",
+                            "type": "text",
+                            "size": 1000,
+                            "required": true
+                        },
+                        {
+                            "$id": "venue",
+                            "name": "venue",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "caption",
+                            "name": "caption",
+                            "type": "text",
+                            "size": 1000,
+                            "required": true
+                        },
+                        {
+                            "$id": "vibeRating",
+                            "name": "vibeRating",
+                            "type": "text",
+                            "size": 100,
+                            "required": true
+                        }
+                    ]
+                },
+                "reports": {
+                    "$id": "reports",
+                    "name": "Safety Reports",
+                    "columns": [
+                        {
+                            "$id": "reportedUser",
+                            "name": "reportedUser",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "reportedUserId",
+                            "name": "reportedUserId",
+                            "type": "text",
+                            "size": 255
+                        },
+                        {
+                            "$id": "reason",
+                            "name": "reason",
+                            "type": "text",
+                            "size": 1000,
+                            "required": true
+                        },
+                        {
+                            "$id": "evidence",
+                            "name": "evidence",
+                            "type": "text",
+                            "size": 2000
+                        },
+                        {
+                            "$id": "reportedBy",
+                            "name": "reportedBy",
+                            "type": "text",
+                            "size": 255
+                        },
+                        {
+                            "$id": "status",
+                            "name": "status",
+                            "type": "text",
+                            "size": 100,
+                            "default": "Pending Review"
+                        }
+                    ]
+                },
+                "refunds": {
+                    "$id": "refunds",
+                    "name": "Refund Operations",
+                    "columns": [
+                        {
+                            "$id": "user",
+                            "name": "user",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "amount",
+                            "name": "amount",
+                            "type": "text",
+                            "size": 100,
+                            "required": true
+                        },
+                        {
+                            "$id": "channel",
+                            "name": "channel",
+                            "type": "text",
+                            "size": 100,
+                            "required": true
+                        },
+                        {
+                            "$id": "phoneOrCard",
+                            "name": "phoneOrCard",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "product",
+                            "name": "product",
+                            "type": "text",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "$id": "reason",
+                            "name": "reason",
+                            "type": "text",
+                            "size": 1000,
+                            "required": true
+                        },
+                        {
+                            "$id": "status",
+                            "name": "status",
+                            "type": "text",
+                            "size": 100,
+                            "default": "Pending Approval"
+                        }
+                    ]
+                }
+            }
+        }
+    }
 }
