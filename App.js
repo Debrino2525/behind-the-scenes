@@ -22,6 +22,9 @@ import {
   Animated,
   KeyboardAvoidingView,
   ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
+  PanResponder,
 } from 'react-native';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 import { 
@@ -30,8 +33,18 @@ import {
   appwriteSendEmailOtp,
   appwriteVerifyEmailOtp,
   appwriteRegisterEmailPassword,
+  appwriteLoginEmailPassword,
+  appwriteSaveUserProfile,
+  appwriteGetUserProfile,
+  appwriteUploadPhoto,
+  appwriteUploadVoiceNote,
   appwriteLogoutMobile
 } from './lib/appwrite';
+import { 
+  loadLocalProfile, 
+  saveLocalProfile, 
+  clearLocalProfile 
+} from './lib/localStorage';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path } from 'react-native-svg';
 import { verifyHumanFace } from './lib/faceVerification';
@@ -164,6 +177,21 @@ function OnboardingScreen({ onComplete }) {
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
+  const [authMode, setAuthMode] = useState('signup'); // 'signup' | 'signin'
+
+  // Gesture responder: Horizontal right swipe triggers handleBack
+  const swipeBackResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) => g.dx > 30 && Math.abs(g.dx) > Math.abs(g.dy) * 1.3,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx > 60 && g.vx > 0.25) {
+          handleBack();
+        }
+      }
+    })
+  ).current;
+
   // Countdown timer for code resend
   useEffect(() => {
     if (countdown > 0) {
@@ -172,14 +200,24 @@ function OnboardingScreen({ onComplete }) {
     }
   }, [countdown]);
 
-  // Check for active Appwrite user
+  // Check for active Appwrite user and restored database profile
   useEffect(() => {
     async function checkExistingUser() {
       try {
         const user = await appwriteGetCurrentUserMobile();
-        if (user) {
+        if (user && user.$id) {
           if (user.name) setFullName(user.name);
           if (user.email) setEmail(user.email);
+
+          // Check if user ALREADY completed their profile in the database!
+          const existingProfile = await appwriteGetUserProfile(user.$id);
+          if (existingProfile && existingProfile.name) {
+            await saveLocalProfile(existingProfile);
+            onComplete(existingProfile);
+            return;
+          }
+
+          // If no profile created yet, move past signup step
           setStep((prev) => (prev <= 2 ? 3 : prev));
         }
       } catch (e) {
@@ -190,12 +228,38 @@ function OnboardingScreen({ onComplete }) {
   }, []);
 
   const handleBack = () => {
+    Keyboard.dismiss();
     setError('');
     if (step === 2 && authSubStep === 'otp') {
       setAuthSubStep('input');
       return;
     }
     setStep((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleSignIn = async () => {
+    Keyboard.dismiss();
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    setIsSendingCode(true);
+    setError('');
+    try {
+      const user = await appwriteLoginEmailPassword(cleanEmail, password);
+      const existingProfile = await appwriteGetUserProfile(user.$id);
+      if (existingProfile && existingProfile.name) {
+        await saveLocalProfile(existingProfile);
+        onComplete(existingProfile);
+        return;
+      }
+      setStep(3);
+    } catch (err) {
+      setError(err?.message || 'Invalid email or password. Please verify your credentials.');
+    } finally {
+      setIsSendingCode(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -422,14 +486,15 @@ function OnboardingScreen({ onComplete }) {
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!isVerified) {
       setError('Please complete the live selfie check first.');
       return;
     }
     const mainPhoto = capturedSelfieUri || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80';
-    onComplete({
+    const profile = {
       name: fullName.trim() || 'New Member',
+      email: email.trim().toLowerCase(),
       age: calculateAge() || 25,
       country: selectedCountry.name,
       countryFlag: selectedCountry.flag,
@@ -447,7 +512,32 @@ function OnboardingScreen({ onComplete }) {
         'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
         'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80'
       ]
-    });
+    };
+
+    // 1. Persist locally to device storage immediately
+    await saveLocalProfile(profile);
+
+    // 2. Sync to Appwrite Cloud Database & Storage
+    try {
+      const user = await appwriteGetCurrentUserMobile();
+      if (user && user.$id) {
+        if (capturedSelfieUri) {
+          try {
+            const uploadedUrl = await appwriteUploadPhoto(capturedSelfieUri, `${user.$id}-avatar.jpg`);
+            if (uploadedUrl && uploadedUrl.startsWith('http')) {
+              profile.photo = uploadedUrl;
+              profile.photos[0] = uploadedUrl;
+            }
+          } catch (e) {}
+        }
+        await appwriteSaveUserProfile(user.$id, profile);
+        await saveLocalProfile(profile);
+      }
+    } catch (syncErr) {
+      console.warn('[Sync Profile Error]', syncErr);
+    }
+
+    onComplete(profile);
   };
 
   // ══════════════════════════════════════════════════
@@ -511,12 +601,12 @@ function OnboardingScreen({ onComplete }) {
 
         <TouchableOpacity 
           style={[s.btnPrimary, { marginTop: 12, width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
-          onPress={() => { setError(''); setStep(2); }}
+          onPress={() => { setError(''); setAuthMode('signup'); setStep(2); }}
         >
           <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Sign Up with Email (18+) →</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => { setError(''); setStep(2); }}>
+        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => { setError(''); setAuthMode('signin'); setStep(2); }}>
           <Text style={[s.bodyTiny, { color: C.textSoft, textDecorationLine: 'underline' }]}>
             I already have an account • Sign In
           </Text>
@@ -535,22 +625,153 @@ function OnboardingScreen({ onComplete }) {
   if (step === 2) {
     if (authSubStep === 'otp') {
       return (
-        <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
           <StepHeader currentStep={1} totalSteps={5} onBack={handleBack} />
 
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, flexGrow: 1 }}>
-            <View style={{ alignItems: 'center', marginVertical: 20 }}>
-              <View style={{ width: 68, height: 68, borderRadius: 22, backgroundColor: 'rgba(212,175,55,0.12)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
-                <Text style={{ fontSize: 32 }}>✉️</Text>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <ScrollView 
+              contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                <View style={{ width: 68, height: 68, borderRadius: 22, backgroundColor: 'rgba(212,175,55,0.12)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
+                  <Text style={{ fontSize: 32 }}>✉️</Text>
+                </View>
+                <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Enter 6-Digit Code</Text>
+                <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }]}>
+                  We sent a temporary verification code to{'\n'}
+                  <Text style={{ color: C.accent, fontWeight: '700' }}>{email}</Text>
+                </Text>
+                <Text style={{ color: C.textMuted, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+                  (Please check both your Inbox and Spam / Junk folder)
+                </Text>
               </View>
-              <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Enter 6-Digit Code</Text>
-              <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }]}>
-                We sent a temporary verification code to{'\n'}
-                <Text style={{ color: C.accent, fontWeight: '700' }}>{email}</Text>
+
+              {/* ERROR ALERT BANNER */}
+              {error ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(224,54,56,0.15)', borderWidth: 1, borderColor: C.red, marginBottom: 16 }}>
+                  <Text style={{ color: C.red, fontSize: 16, marginRight: 8 }}>⚠️</Text>
+                  <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1 }}>{error}</Text>
+                </View>
+              ) : null}
+
+              <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 8, textAlign: 'center' }}>
+                6-DIGIT VERIFICATION CODE
               </Text>
-              <Text style={{ color: C.textMuted, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
-                (Please check both your Inbox and Spam / Junk folder)
+              <TextInput
+                style={[s.textInput, { width: '100%', fontSize: 28, fontWeight: '900', letterSpacing: 8, textAlign: 'center', paddingVertical: 14, marginBottom: 20, borderColor: error ? C.red : C.accent }]}
+                placeholder="••••••"
+                placeholderTextColor={C.textMuted}
+                keyboardType="number-pad"
+                maxLength={6}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                  handleVerifyOtp();
+                }}
+                value={otpCode}
+                onChangeText={(t) => { 
+                  setOtpCode(t); 
+                  setError(''); 
+                  if (t.length === 6) Keyboard.dismiss();
+                }}
+                autoFocus
+              />
+
+              <TouchableOpacity 
+                style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: 18, marginBottom: 14 }]} 
+                onPress={() => {
+                  Keyboard.dismiss();
+                  handleVerifyOtp();
+                }}
+                disabled={isVerifyingCode}
+              >
+                {isVerifyingCode ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Verify Code & Continue →</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Resend Code Section */}
+              <View style={{ alignItems: 'center', marginTop: 12 }}>
+                {countdown > 0 ? (
+                  <Text style={{ color: C.textMuted, fontSize: 12, fontWeight: '600' }}>
+                    Resend code in <Text style={{ color: C.accent, fontWeight: '800' }}>{countdown}s</Text>
+                  </Text>
+                ) : (
+                  <TouchableOpacity onPress={handleSendOtp} disabled={isSendingCode}>
+                    <Text style={{ color: C.accent, fontSize: 13, fontWeight: '800', textDecorationLine: 'underline' }}>
+                      {isSendingCode ? 'Sending...' : 'Resend 6-Digit Code'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity style={{ marginTop: 22 }} onPress={() => { setError(''); setAuthSubStep('input'); }}>
+                  <Text style={{ color: C.textSoft, fontSize: 12, textDecorationLine: 'underline' }}>
+                    Wrong email address? Change email
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </View>
+      );
+    }
+
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
+        <StepHeader currentStep={1} totalSteps={5} onBack={handleBack} />
+        
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView 
+            contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>
+              {authMode === 'signin' ? 'Sign In to Your Account' : 'Create Your Account'}
+            </Text>
+            <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 20 }]}>
+              {authMode === 'signin' 
+                ? 'Welcome back! Sign in to access your BTS profile and matches'
+                : 'Synced with Appwrite Cloud Database & Verification'}
+            </Text>
+
+            {/* Quick Google OAuth option */}
+            <TouchableOpacity 
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#FFFFFF',
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                borderRadius: 16,
+                width: '100%',
+                marginBottom: 16,
+                elevation: 2
+              }}
+              onPress={handleGoogleSignIn}
+              disabled={loadingOAuth}
+            >
+              {loadingOAuth ? (
+                <ActivityIndicator color="#111" size="small" />
+              ) : (
+                <>
+                  <GoogleLogo size={20} style={{ marginRight: 10 }} />
+                  <Text style={{ color: '#1A1E2D', fontWeight: '800', fontSize: 13 }}>
+                    Continue with Google
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
+              <Text style={{ color: C.textMuted, fontSize: 10, marginHorizontal: 12, fontWeight: '800', letterSpacing: 1 }}>
+                {authMode === 'signin' ? 'OR SIGN IN WITH EMAIL' : 'OR REGISTER WITH EMAIL'}
               </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
             </View>
 
             {/* ERROR ALERT BANNER */}
@@ -561,166 +782,119 @@ function OnboardingScreen({ onComplete }) {
               </View>
             ) : null}
 
-            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 8, textAlign: 'center' }}>
-              6-DIGIT VERIFICATION CODE
-            </Text>
-            <TextInput
-              style={[s.textInput, { width: '100%', fontSize: 28, fontWeight: '900', letterSpacing: 8, textAlign: 'center', paddingVertical: 14, marginBottom: 20, borderColor: error ? C.red : C.accent }]}
-              placeholder="••••••"
-              placeholderTextColor={C.textMuted}
-              keyboardType="number-pad"
-              maxLength={6}
-              value={otpCode}
-              onChangeText={(t) => { setOtpCode(t); setError(''); }}
-              autoFocus
-            />
-
-            <TouchableOpacity 
-              style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: 18, marginBottom: 14 }]} 
-              onPress={handleVerifyOtp}
-              disabled={isVerifyingCode}
-            >
-              {isVerifyingCode ? (
-                <ActivityIndicator color="#000" size="small" />
-              ) : (
-                <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Verify Code & Continue →</Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Resend Code Section */}
-            <View style={{ alignItems: 'center', marginTop: 12 }}>
-              {countdown > 0 ? (
-                <Text style={{ color: C.textMuted, fontSize: 12, fontWeight: '600' }}>
-                  Resend code in <Text style={{ color: C.accent, fontWeight: '800' }}>{countdown}s</Text>
-                </Text>
-              ) : (
-                <TouchableOpacity onPress={handleSendOtp} disabled={isSendingCode}>
-                  <Text style={{ color: C.accent, fontSize: 13, fontWeight: '800', textDecorationLine: 'underline' }}>
-                    {isSendingCode ? 'Sending...' : 'Resend 6-Digit Code'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity style={{ marginTop: 22 }} onPress={() => { setError(''); setAuthSubStep('input'); }}>
-                <Text style={{ color: C.textSoft, fontSize: 12, textDecorationLine: 'underline' }}>
-                  Wrong email address? Change email
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </View>
-      );
-    }
-
-    return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <StepHeader currentStep={1} totalSteps={5} onBack={handleBack} />
-        
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, flexGrow: 1 }}>
-          <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>Create Your Account</Text>
-          <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 20 }]}>
-            Synced with Appwrite Cloud Database & Verification
-          </Text>
-
-          {/* Quick Google OAuth option */}
-          <TouchableOpacity 
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#FFFFFF',
-              paddingVertical: 14,
-              paddingHorizontal: 20,
-              borderRadius: 16,
-              width: '100%',
-              marginBottom: 16,
-              elevation: 2
-            }}
-            onPress={handleGoogleSignIn}
-            disabled={loadingOAuth}
-          >
-            {loadingOAuth ? (
-              <ActivityIndicator color="#111" size="small" />
-            ) : (
+            {authMode === 'signup' && (
               <>
-                <GoogleLogo size={20} style={{ marginRight: 10 }} />
-                <Text style={{ color: '#1A1E2D', fontWeight: '800', fontSize: 13 }}>
-                  Quick Sign-In with Google
-                </Text>
+                <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Full Legal Name (Private)</Text>
+                <TextInput
+                  style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16, borderColor: !fullName && error ? C.red : C.border }]}
+                  placeholder="e.g. Kwame Mensah"
+                  placeholderTextColor={C.textMuted}
+                  value={fullName}
+                  returnKeyType="next"
+                  onChangeText={(t) => { setFullName(t); setError(''); }}
+                />
               </>
             )}
-          </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-            <Text style={{ color: C.textMuted, fontSize: 10, marginHorizontal: 12, fontWeight: '800', letterSpacing: 1 }}>
-              OR REGISTER WITH EMAIL
-            </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-          </View>
+            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Email Address</Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16, borderColor: !email && error ? C.red : C.border }]}
+              placeholder="your.email@example.com"
+              placeholderTextColor={C.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="next"
+              value={email}
+              onChangeText={(t) => { setEmail(t); setError(''); }}
+            />
 
-          {/* ERROR ALERT BANNER */}
-          {error ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(224,54,56,0.15)', borderWidth: 1, borderColor: C.red, marginBottom: 16 }}>
-              <Text style={{ color: C.red, fontSize: 16, marginRight: 8 }}>⚠️</Text>
-              <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1 }}>{error}</Text>
-            </View>
-          ) : null}
+            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Password</Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20, borderColor: password.length < 8 && error ? C.red : C.border }]}
+              placeholder="••••••••••••"
+              placeholderTextColor={C.textMuted}
+              secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
+              value={password}
+              onChangeText={(t) => { setPassword(t); setError(''); }}
+            />
 
-          <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Full Legal Name (Private)</Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16, borderColor: !fullName && error ? C.red : C.border }]}
-            placeholder="e.g. Kwame Mensah"
-            placeholderTextColor={C.textMuted}
-            value={fullName}
-            onChangeText={(t) => { setFullName(t); setError(''); }}
-          />
+            {authMode === 'signin' ? (
+              <>
+                <TouchableOpacity 
+                  style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18, marginBottom: 12 }]} 
+                  onPress={handleSignIn}
+                  disabled={isSendingCode}
+                >
+                  {isSendingCode ? (
+                    <ActivityIndicator color="#000" size="small" />
+                  ) : (
+                    <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Sign In to Account →</Text>
+                  )}
+                </TouchableOpacity>
 
-          <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Email Address</Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16, borderColor: !email && error ? C.red : C.border }]}
-            placeholder="your.email@example.com"
-            placeholderTextColor={C.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={(t) => { setEmail(t); setError(''); }}
-          />
+                <TouchableOpacity 
+                  style={{ width: '100%', alignItems: 'center', paddingVertical: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border, marginBottom: 16 }}
+                  onPress={handleSendOtp}
+                  disabled={isSendingCode}
+                >
+                  <Text style={{ color: C.textSoft, fontWeight: '700', fontSize: 12 }}>
+                    Or Sign In with 6-Digit Email Code
+                  </Text>
+                </TouchableOpacity>
 
-          <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Password (Minimum 8 Characters)</Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20, borderColor: password.length < 8 && error ? C.red : C.border }]}
-            placeholder="••••••••••••"
-            placeholderTextColor={C.textMuted}
-            secureTextEntry
-            value={password}
-            onChangeText={(t) => { setPassword(t); setError(''); }}
-          />
-
-          {/* Primary Action: Send 6-Digit Code */}
-          <TouchableOpacity 
-            style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18, marginBottom: 12 }]} 
-            onPress={handleSendOtp}
-            disabled={isSendingCode}
-          >
-            {isSendingCode ? (
-              <ActivityIndicator color="#000" size="small" />
+                <TouchableOpacity 
+                  style={{ alignItems: 'center', paddingVertical: 10 }}
+                  onPress={() => { setError(''); setAuthMode('signup'); }}
+                >
+                  <Text style={{ color: C.accent, fontSize: 13, fontWeight: '800' }}>
+                    New to BTS? Create an Account
+                  </Text>
+                </TouchableOpacity>
+              </>
             ) : (
-              <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Send 6-Digit Verification Code →</Text>
-            )}
-          </TouchableOpacity>
+              <>
+                <TouchableOpacity 
+                  style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18, marginBottom: 12 }]} 
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    handleSendOtp();
+                  }}
+                  disabled={isSendingCode}
+                >
+                  {isSendingCode ? (
+                    <ActivityIndicator color="#000" size="small" />
+                  ) : (
+                    <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Send 6-Digit Verification Code →</Text>
+                  )}
+                </TouchableOpacity>
 
-          {/* Alternative: Direct Password Sign-Up */}
-          <TouchableOpacity 
-            style={{ width: '100%', alignItems: 'center', paddingVertical: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border }}
-            onPress={handleDirectPasswordRegister}
-            disabled={isSendingCode}
-          >
-            <Text style={{ color: C.textSoft, fontWeight: '700', fontSize: 12 }}>
-              Or Register Instantly with Password
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+                <TouchableOpacity 
+                  style={{ width: '100%', alignItems: 'center', paddingVertical: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border, marginBottom: 16 }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    handleDirectPasswordRegister();
+                  }}
+                  disabled={isSendingCode}
+                >
+                  <Text style={{ color: C.textSoft, fontWeight: '700', fontSize: 12 }}>
+                    Or Register Instantly with Password
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={{ alignItems: 'center', paddingVertical: 10 }}
+                  onPress={() => { setError(''); setAuthMode('signin'); }}
+                >
+                  <Text style={{ color: C.accent, fontSize: 13, fontWeight: '800' }}>
+                    Already have an account? Sign In
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </View>
     );
   }
@@ -731,42 +905,69 @@ function OnboardingScreen({ onComplete }) {
   if (step === 3) {
     const calculatedAge = calculateAge();
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
         <StepHeader currentStep={2} totalSteps={5} onBack={handleBack} />
 
-        <View style={[s.fullCenter, { paddingHorizontal: 28 }]}>
-          <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: 'rgba(224,54,56,0.12)', borderWidth: 1, borderColor: 'rgba(224,54,56,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 36 }}>🛡️</Text>
-          </View>
-          <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Verify Your Age</Text>
-          <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
-            In strict compliance with Google Play Console & Apple App Store rules, BTS is exclusively for adults 18+.
-          </Text>
-          
-          <TextInput
-            style={[s.textInput, { width: '85%', marginTop: 24, fontSize: 22, fontWeight: '900', letterSpacing: 4 }]}
-            placeholder="YYYY"
-            placeholderTextColor={C.textMuted}
-            keyboardType="number-pad"
-            maxLength={4}
-            value={year}
-            onChangeText={(t) => { setYear(t); setError(''); }}
-          />
-
-          {calculatedAge !== null && (
-            <View style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12, backgroundColor: calculatedAge >= 18 ? 'rgba(16,185,129,0.15)' : 'rgba(224,54,56,0.15)' }}>
-              <Text style={{ color: calculatedAge >= 18 ? C.emerald : C.red, fontWeight: '800', fontSize: 12 }}>
-                {calculatedAge >= 18 ? `Age: ${calculatedAge} • Eligible to Join ✓` : `Age: ${calculatedAge} • Strictly Under 18 ✗`}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+            <ScrollView 
+              contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28, paddingBottom: 40 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: 'rgba(224,54,56,0.12)', borderWidth: 1, borderColor: 'rgba(224,54,56,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 36 }}>🛡️</Text>
+              </View>
+              <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Verify Your Age</Text>
+              <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
+                In strict compliance with Google Play Console & Apple App Store rules, BTS is exclusively for adults 18+.
               </Text>
-            </View>
-          )}
+              
+              <TextInput
+                style={[s.textInput, { width: '85%', marginTop: 24, fontSize: 24, fontWeight: '900', letterSpacing: 6 }]}
+                placeholder="YYYY"
+                placeholderTextColor={C.textMuted}
+                keyboardType="number-pad"
+                maxLength={4}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                  handleDobNext();
+                }}
+                value={year}
+                onChangeText={(t) => {
+                  setYear(t);
+                  setError('');
+                  if (t.length === 4) {
+                    Keyboard.dismiss();
+                  }
+                }}
+              />
 
-          {error ? <Text style={{ color: C.red, fontSize: 12, marginTop: 10, textAlign: 'center', fontWeight: '700' }}>{error}</Text> : null}
+              {calculatedAge !== null && (
+                <View style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12, backgroundColor: calculatedAge >= 18 ? 'rgba(16,185,129,0.15)' : 'rgba(224,54,56,0.15)' }}>
+                  <Text style={{ color: calculatedAge >= 18 ? C.emerald : C.red, fontWeight: '800', fontSize: 12 }}>
+                    {calculatedAge >= 18 ? `Age: ${calculatedAge} • Eligible to Join ✓` : `Age: ${calculatedAge} • Strictly Under 18 ✗`}
+                  </Text>
+                </View>
+              )}
 
-          <TouchableOpacity style={[s.btnPrimary, { marginTop: 28, width: '85%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} onPress={handleDobNext}>
-            <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Confirm 18+ & Continue →</Text>
-          </TouchableOpacity>
-        </View>
+              {error ? <Text style={{ color: C.red, fontSize: 12, marginTop: 10, textAlign: 'center', fontWeight: '700' }}>{error}</Text> : null}
+
+              <TouchableOpacity 
+                style={[s.btnPrimary, { marginTop: 28, width: '85%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
+                onPress={() => {
+                  Keyboard.dismiss();
+                  handleDobNext();
+                }}
+              >
+                <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Confirm 18+ & Continue →</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </View>
     );
   }
@@ -776,89 +977,104 @@ function OnboardingScreen({ onComplete }) {
   // ══════════════════════════════════════════════════
   if (step === 4) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
         <StepHeader currentStep={3} totalSteps={5} onBack={handleBack} />
 
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20 }}>
-          <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>Select Your Country & Roots</Text>
-          <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 18 }]}>
-            Connecting genuine singles across Africa's safest nations & diaspora
-          </Text>
-
-          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
-            SELECT YOUR COUNTRY
-          </Text>
-          
-          {/* Neat Country Carousel with fixed height to prevent vertical stretching */}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            contentContainerStyle={{ alignItems: 'center', height: 46 }}
-            style={{ maxHeight: 46, marginBottom: 20 }}
+            contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20 }}
+            keyboardShouldPersistTaps="handled"
           >
-            {COUNTRIES_LIST.map((c, i) => {
-              const active = selectedCountry.name === c.name;
-              return (
-                <TouchableOpacity 
-                  key={i} 
-                  onPress={() => {
-                    setSelectedCountry(c);
-                    setCurrentCity(c.defaultCity);
-                    setHomeTown(c.defaultRoots);
-                    setTribe(c.defaultTribe);
-                  }}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    borderRadius: 14,
-                    backgroundColor: active ? C.accent : 'rgba(255,255,255,0.06)',
-                    borderWidth: 1.5,
-                    borderColor: active ? C.accent : C.border,
-                    marginRight: 10
-                  }}
-                >
-                  <Text style={{ fontSize: 16, marginRight: 6 }}>{c.flag}</Text>
-                  <Text style={{ color: active ? '#000000' : '#FFFFFF', fontWeight: '800', fontSize: 12 }}>
-                    {c.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>Select Your Country & Roots</Text>
+            <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 18 }]}>
+              Connecting genuine singles across Africa's safest nations & diaspora
+            </Text>
+
+            <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
+              SELECT YOUR COUNTRY
+            </Text>
+            
+            {/* Neat Country Carousel with fixed height to prevent vertical stretching */}
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={{ alignItems: 'center', height: 46 }}
+              style={{ maxHeight: 46, marginBottom: 20 }}
+            >
+              {COUNTRIES_LIST.map((c, i) => {
+                const active = selectedCountry.name === c.name;
+                return (
+                  <TouchableOpacity 
+                    key={i} 
+                    onPress={() => {
+                      setSelectedCountry(c);
+                      setCurrentCity(c.defaultCity);
+                      setHomeTown(c.defaultRoots);
+                      setTribe(c.defaultTribe);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      borderRadius: 14,
+                      backgroundColor: active ? C.accent : 'rgba(255,255,255,0.06)',
+                      borderWidth: 1.5,
+                      borderColor: active ? C.accent : C.border,
+                      marginRight: 10
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, marginRight: 6 }}>{c.flag}</Text>
+                    <Text style={{ color: active ? '#000000' : '#FFFFFF', fontWeight: '800', fontSize: 12 }}>
+                      {c.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Current Living City</Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16 }]}
+              value={currentCity}
+              onChangeText={setCurrentCity}
+              placeholder="e.g. Accra, London, Gaborone"
+              placeholderTextColor={C.textMuted}
+              returnKeyType="next"
+            />
+
+            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Hometown / Ancestral Roots</Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16 }]}
+              value={homeTown}
+              onChangeText={setHomeTown}
+              placeholder="e.g. Kumasi, Cape Coast, Maun, Fès"
+              placeholderTextColor={C.textMuted}
+              returnKeyType="next"
+            />
+
+            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Tribe / Heritage</Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20 }]}
+              value={tribe}
+              onChangeText={setTribe}
+              placeholder="e.g. Asante, Fante, Tswana, Amazigh"
+              placeholderTextColor={C.textMuted}
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+
+            <TouchableOpacity 
+              style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
+              onPress={() => {
+                Keyboard.dismiss();
+                setStep(5);
+              }}
+            >
+              <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Candid Moment →</Text>
+            </TouchableOpacity>
           </ScrollView>
-
-          <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Current Living City</Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16 }]}
-            value={currentCity}
-            onChangeText={setCurrentCity}
-            placeholder="e.g. Accra, London, Gaborone"
-            placeholderTextColor={C.textMuted}
-          />
-
-          <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Hometown / Ancestral Roots</Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 16 }]}
-            value={homeTown}
-            onChangeText={setHomeTown}
-            placeholder="e.g. Kumasi, Cape Coast, Maun, Fès"
-            placeholderTextColor={C.textMuted}
-          />
-
-          <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Tribe / Heritage</Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20 }]}
-            value={tribe}
-            onChangeText={setTribe}
-            placeholder="e.g. Asante, Fante, Tswana, Amazigh"
-            placeholderTextColor={C.textMuted}
-          />
-
-          <TouchableOpacity style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} onPress={() => setStep(5)}>
-            <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Candid Moment →</Text>
-          </TouchableOpacity>
-        </ScrollView>
+        </TouchableWithoutFeedback>
       </View>
     );
   }
@@ -868,42 +1084,55 @@ function OnboardingScreen({ onComplete }) {
   // ══════════════════════════════════════════════════
   if (step === 5) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
         <StepHeader currentStep={4} totalSteps={5} onBack={handleBack} />
 
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20 }}>
-          <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>Your Behind-The-Scenes</Text>
-          <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 20 }]}>
-            Show what you look like in real life when not trying
-          </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView 
+            contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>Your Behind-The-Scenes</Text>
+            <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 20 }]}>
+              Show what you look like in real life when not trying
+            </Text>
 
-          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>
-            CANDID MOMENT CAPTION
-          </Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', height: 90, textAlign: 'left', textAlignVertical: 'top', marginTop: 0, marginBottom: 18 }]}
-            multiline
-            value={btsCaption}
-            onChangeText={setBtsCaption}
-            placeholder="Behind the scenes: Making Sunday waakye in my oversized t-shirt with no makeup..."
-            placeholderTextColor={C.textMuted}
-          />
+            <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>
+              CANDID MOMENT CAPTION
+            </Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', height: 90, textAlign: 'left', textAlignVertical: 'top', marginTop: 0, marginBottom: 18 }]}
+              multiline
+              value={btsCaption}
+              onChangeText={setBtsCaption}
+              placeholder="Behind the scenes: Making Sunday waakye in my oversized t-shirt with no makeup..."
+              placeholderTextColor={C.textMuted}
+            />
 
-          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>
-            DAILY QUIRKY HABIT
-          </Text>
-          <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 24 }]}
-            value={btsHabit}
-            onChangeText={setBtsHabit}
-            placeholder="e.g. I listen to Daddy Lumba every Sunday morning"
-            placeholderTextColor={C.textMuted}
-          />
+            <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>
+              DAILY QUIRKY HABIT
+            </Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 24 }]}
+              value={btsHabit}
+              onChangeText={setBtsHabit}
+              placeholder="e.g. I listen to Daddy Lumba every Sunday morning"
+              placeholderTextColor={C.textMuted}
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
 
-          <TouchableOpacity style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} onPress={() => setStep(6)}>
-            <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Anti-Catfish Check →</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            <TouchableOpacity 
+              style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
+              onPress={() => {
+                Keyboard.dismiss();
+                setStep(6);
+              }}
+            >
+              <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Anti-Catfish Check →</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </View>
     );
   }
@@ -2151,6 +2380,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
   };
 
   const handleSave = () => {
+    Keyboard.dismiss();
     const updated = {
       ...userProfile,
       name: name.trim(),
@@ -2174,7 +2404,11 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <ScrollView 
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* Profile Header */}
       <View style={{ alignItems: 'center', marginBottom: 18 }}>
         <View style={{ position: 'relative' }}>
@@ -2508,6 +2742,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
         <Text style={{ color: C.red, fontWeight: '700', fontSize: 11 }}>Delete Account (Data Purge)</Text>
       </TouchableOpacity>
     </ScrollView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -2516,6 +2751,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
 // ══════════════════════════════════════════════════
 export default function App() {
   const [userProfile, setUserProfile] = useState(null);
+  const [loadingSession, setLoadingSession] = useState(true);
   const [tab, setTab] = useState('discover');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [matches, setMatches] = useState(INITIAL_MATCHES);
@@ -2523,6 +2759,36 @@ export default function App() {
   const [chatMatch, setChatMatch] = useState(null);
   const profiles = INITIAL_PROFILES;
   const currentProfile = profiles[currentIdx] || null;
+
+  // Restore authenticated session and profile on app start (instant local cache + Appwrite)
+  useEffect(() => {
+    async function restoreSession() {
+      try {
+        // 1. Instant local file load (0ms offline-first)
+        const local = await loadLocalProfile();
+        if (local && local.name) {
+          setUserProfile(local);
+          setLoadingSession(false);
+          return;
+        }
+
+        // 2. Query active Appwrite Cloud session & database
+        const user = await appwriteGetCurrentUserMobile();
+        if (user && user.$id) {
+          const remote = await appwriteGetUserProfile(user.$id);
+          if (remote && remote.name) {
+            setUserProfile(remote);
+            await saveLocalProfile(remote);
+          }
+        }
+      } catch (err) {
+        console.warn('[Session Restore Error]', err?.message);
+      } finally {
+        setLoadingSession(false);
+      }
+    }
+    restoreSession();
+  }, []);
 
   const handleLike = () => {
     if (!currentProfile) return;
@@ -2545,6 +2811,16 @@ export default function App() {
 
   const handlePass = () => setCurrentIdx(prev => prev + 1);
   const handleReport = (name) => Alert.alert('Report Submitted', `Your report about ${name} has been received. Our safety team will review within 24 hours.`);
+
+  if (loadingSession) {
+    return (
+      <View style={[s.fullCenter, { backgroundColor: C.bg }]}>
+        <StatusBar barStyle="light-content" />
+        <Image source={require('./assets/bts-official-logo.png')} style={{ width: 100, height: 100, resizeMode: 'contain', marginBottom: 20 }} />
+        <ActivityIndicator color={C.accent} size="large" />
+      </View>
+    );
+  }
 
   if (!userProfile) {
     return (
@@ -2629,8 +2905,21 @@ export default function App() {
       {tab === 'profile' && (
         <ProfileScreen
           userProfile={userProfile}
-          onUpdateProfile={(updated) => setUserProfile(updated)}
-          onLogout={() => {
+          onUpdateProfile={async (updated) => {
+            setUserProfile(updated);
+            await saveLocalProfile(updated);
+            try {
+              const user = await appwriteGetCurrentUserMobile();
+              if (user && user.$id) {
+                await appwriteSaveUserProfile(user.$id, updated);
+              }
+            } catch (e) {
+              console.warn('[Sync Profile Update]', e);
+            }
+          }}
+          onLogout={async () => {
+            await clearLocalProfile();
+            await appwriteLogoutMobile();
             setUserProfile(null);
             setTab('discover');
           }}
