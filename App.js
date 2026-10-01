@@ -25,7 +25,7 @@ import {
   Keyboard,
   PanResponder,
 } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 import { 
   appwriteLoginWithGoogleMobile, 
@@ -4021,7 +4021,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
 // ══════════════════════════════════════════════════
 //  MAIN APP
 // ══════════════════════════════════════════════════
-export default function App() {
+function AppInner() {
   const [userProfile, setUserProfile] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [tab, setTab] = useState('discover');
@@ -4129,164 +4129,174 @@ export default function App() {
 
   if (!userProfile) {
     return (
-      <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: '#07090E' }}>
-          <StatusBar barStyle="light-content" />
-          <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top', 'bottom', 'left', 'right']}>
-            <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} />
-          </SafeAreaView>
-        </View>
-      </SafeAreaProvider>
+      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
+        <StatusBar barStyle="light-content" />
+        <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} />
+      </View>
     );
   }
 
+  // Safe area insets — avoids SafeAreaView collapse bug in Expo Go SDK 57
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#07090E' }}>
+      <StatusBar barStyle="light-content" />
+      <DimmedAppBackground screen={tab} />
+
+      {/* Full height column with explicit top/bottom padding from insets */}
+      <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+
+        {/* Header */}
+        <View style={s.header}>
+          <TouchableOpacity onPress={() => setTab('discover')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Image source={require('./assets/bts-official-logo.png')} style={{ width: 34, height: 34, resizeMode: 'contain' }} />
+            <View>
+              <Text style={s.brandTitleSm}>BEHIND THE SCENES</Text>
+              <Text style={[s.bodyTiny, { color: C.textMuted, letterSpacing: 1.5 }]}>REAL VIBES • AFRICA</Text>
+            </View>
+          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={s.headerBtn} onPress={() => setTab('matches')}>
+              <Text style={{ fontSize: 16 }}>💬</Text>
+              {activeMatches.some(m => m.unread) && <View style={s.headerBadge} />}
+            </TouchableOpacity>
+            <TouchableOpacity style={s.headerBtn} onPress={() => Alert.alert('Safety Center', 'Community Guidelines, Privacy Policy, Terms of Service, and Account Deletion are available here.', [{ text: 'OK' }])}>
+              <Text style={{ fontSize: 16 }}>🛡️</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Content Area */}
+        <View style={{ flex: 1 }}>
+          {tab === 'discover' && (
+            <ProfileCard
+              profile={currentProfile}
+              onLike={handleLike}
+              onPass={handlePass}
+              onSuperLike={handleLike}
+              onBts={(p) => setBtsProfile(p)}
+              onReport={handleReport}
+            />
+          )}
+
+          {tab === 'date_drops' && (
+            <DateDropsScreen
+              userProfile={userProfile}
+            />
+          )}
+
+          {tab === 'likes_you' && (
+            <LikesYouScreen
+              userGender={userGender}
+              onMatchBack={(p) => {
+                const newMatch = {
+                  id: p.id,
+                  name: p.name,
+                  gender: p.gender,
+                  photo: p.photo,
+                  lastMessage: "You matched back! Say hi!",
+                  time: "Just now",
+                  unread: true,
+                  online: true,
+                  hometown: p.hometown,
+                  currentCity: p.city,
+                  country: "Ghana"
+                };
+                setMatches(prev => [newMatch, ...prev.filter(m => m.id !== p.id)]);
+                setChatMatch(newMatch);
+              }}
+            />
+          )}
+
+          {tab === 'matches' && (
+            <MatchesScreen
+              matches={activeMatches}
+              onSelectMatch={(m) => setChatMatch(m)}
+              onBack={() => setTab('discover')}
+            />
+          )}
+
+          {tab === 'profile' && (
+            <ProfileScreen
+              userProfile={userProfile}
+              onUpdateProfile={async (updated) => {
+                setUserProfile(updated);
+                await saveLocalProfile(updated);
+                try {
+                  const user = await appwriteGetCurrentUserMobile();
+                  if (user && user.$id) {
+                    await appwriteSaveUserProfile(user.$id, updated);
+                  }
+                } catch (e) {
+                  console.warn('[Sync Profile Update]', e);
+                }
+              }}
+              onLogout={async () => {
+                await clearLocalProfile();
+                await appwriteLogoutMobile();
+                setUserProfile(null);
+                setTab('discover');
+              }}
+            />
+          )}
+        </View>
+
+        {/* Floating Bottom Navigation Bar */}
+        <View style={s.bottomBar}>
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('discover')}>
+            <Text style={[s.bottomTabIcon, tab === 'discover' && { transform: [{ scale: 1.2 }] }]}>🔥</Text>
+            <Text style={[s.bottomTabText, tab === 'discover' && s.bottomTabActive]}>Discover</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('date_drops')}>
+            <Text style={[s.bottomTabIcon, tab === 'date_drops' && { transform: [{ scale: 1.2 }] }]}>🥂</Text>
+            <Text style={[s.bottomTabText, tab === 'date_drops' && s.bottomTabActive]}>Date Drops</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('likes_you')}>
+            <Text style={[s.bottomTabIcon, tab === 'likes_you' && { transform: [{ scale: 1.2 }] }]}>👁</Text>
+            <Text style={[s.bottomTabText, tab === 'likes_you' && s.bottomTabActive]}>Likes You</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('matches')}>
+            <View>
+              <Text style={[s.bottomTabIcon, tab === 'matches' && { transform: [{ scale: 1.2 }] }]}>💬</Text>
+              {matches.some(m => m.unread) && <View style={s.bottomBadge} />}
+            </View>
+            <Text style={[s.bottomTabText, tab === 'matches' && s.bottomTabActive]}>Matches</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('profile')}>
+            <Text style={[s.bottomTabIcon, tab === 'profile' && { transform: [{ scale: 1.2 }] }]}>👤</Text>
+            <Text style={[s.bottomTabText, tab === 'profile' && s.bottomTabActive]}>Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+      </View>
+
+      {/* BTS Reveal Modal */}
+      <BtsModal
+        profile={btsProfile}
+        visible={!!btsProfile}
+        onClose={() => setBtsProfile(null)}
+        onLike={() => { setBtsProfile(null); handleLike(); }}
+      />
+
+      {/* Chat Modal */}
+      {chatMatch && (
+        <ChatScreen match={chatMatch} onClose={() => setChatMatch(null)} />
+      )}
+    </View>
+  );
+}
+
+// Outer wrapper that provides SafeAreaProvider context
+// (useSafeAreaInsets inside AppInner requires this parent)
+export default function App() {
   return (
     <SafeAreaProvider>
-      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
-        <StatusBar barStyle="light-content" />
-        <DimmedAppBackground screen={tab} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top', 'left', 'right']}>
-
-          {/* Header */}
-          <View style={s.header}>
-            <TouchableOpacity onPress={() => setTab('discover')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Image source={require('./assets/bts-official-logo.png')} style={{ width: 34, height: 34, resizeMode: 'contain' }} />
-              <View>
-                <Text style={s.brandTitleSm}>BEHIND THE SCENES</Text>
-                <Text style={[s.bodyTiny, { color: C.textMuted, letterSpacing: 1.5 }]}>REAL VIBES • AFRICA</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={s.headerBtn} onPress={() => setTab('matches')}>
-                <Text style={{ fontSize: 16 }}>💬</Text>
-                {activeMatches.some(m => m.unread) && <View style={s.headerBadge} />}
-              </TouchableOpacity>
-              <TouchableOpacity style={s.headerBtn} onPress={() => Alert.alert('Safety Center', 'Community Guidelines, Privacy Policy, Terms of Service, and Account Deletion are available here.', [{ text: 'OK' }])}>
-                <Text style={{ fontSize: 16 }}>🛡️</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Content Area with dedicated flex: 1 */}
-          <View style={{ flex: 1 }}>
-            {tab === 'discover' && (
-              <ProfileCard
-                profile={currentProfile}
-                onLike={handleLike}
-                onPass={handlePass}
-                onSuperLike={handleLike}
-                onBts={(p) => setBtsProfile(p)}
-                onReport={handleReport}
-              />
-            )}
-
-            {tab === 'date_drops' && (
-              <DateDropsScreen 
-                userProfile={userProfile}
-              />
-            )}
-
-            {tab === 'likes_you' && (
-              <LikesYouScreen 
-                userGender={userGender}
-                onMatchBack={(p) => {
-                  const newMatch = {
-                    id: p.id,
-                    name: p.name,
-                    gender: p.gender,
-                    photo: p.photo,
-                    lastMessage: "You matched back! Say hi!",
-                    time: "Just now",
-                    unread: true,
-                    online: true,
-                    hometown: p.hometown,
-                    currentCity: p.city,
-                    country: "Ghana"
-                  };
-                  setMatches(prev => [newMatch, ...prev.filter(m => m.id !== p.id)]);
-                  setChatMatch(newMatch);
-                }}
-              />
-            )}
-
-            {tab === 'matches' && (
-              <MatchesScreen
-                matches={activeMatches}
-                onSelectMatch={(m) => setChatMatch(m)}
-                onBack={() => setTab('discover')}
-              />
-            )}
-
-            {tab === 'profile' && (
-              <ProfileScreen
-                userProfile={userProfile}
-                onUpdateProfile={async (updated) => {
-                  setUserProfile(updated);
-                  await saveLocalProfile(updated);
-                  try {
-                    const user = await appwriteGetCurrentUserMobile();
-                    if (user && user.$id) {
-                      await appwriteSaveUserProfile(user.$id, updated);
-                    }
-                  } catch (e) {
-                    console.warn('[Sync Profile Update]', e);
-                  }
-                }}
-                onLogout={async () => {
-                  await clearLocalProfile();
-                  await appwriteLogoutMobile();
-                  setUserProfile(null);
-                  setTab('discover');
-                }}
-              />
-            )}
-          </View>
-
-          {/* Floating Bottom Navigation Bar */}
-          <View style={s.bottomBar}>
-            <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('discover')}>
-              <Text style={[s.bottomTabIcon, tab === 'discover' && { transform: [{ scale: 1.2 }] }]}>🔥</Text>
-              <Text style={[s.bottomTabText, tab === 'discover' && s.bottomTabActive]}>Discover</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('date_drops')}>
-              <Text style={[s.bottomTabIcon, tab === 'date_drops' && { transform: [{ scale: 1.2 }] }]}>🥂</Text>
-              <Text style={[s.bottomTabText, tab === 'date_drops' && s.bottomTabActive]}>Date Drops</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('likes_you')}>
-              <Text style={[s.bottomTabIcon, tab === 'likes_you' && { transform: [{ scale: 1.2 }] }]}>👁</Text>
-              <Text style={[s.bottomTabText, tab === 'likes_you' && s.bottomTabActive]}>Likes You</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('matches')}>
-              <View>
-                <Text style={[s.bottomTabIcon, tab === 'matches' && { transform: [{ scale: 1.2 }] }]}>💬</Text>
-                {matches.some(m => m.unread) && <View style={s.bottomBadge} />}
-              </View>
-              <Text style={[s.bottomTabText, tab === 'matches' && s.bottomTabActive]}>Matches</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('profile')}>
-              <Text style={[s.bottomTabIcon, tab === 'profile' && { transform: [{ scale: 1.2 }] }]}>👤</Text>
-              <Text style={[s.bottomTabText, tab === 'profile' && s.bottomTabActive]}>Profile</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* BTS Reveal Modal */}
-          <BtsModal
-            profile={btsProfile}
-            visible={!!btsProfile}
-            onClose={() => setBtsProfile(null)}
-            onLike={() => { setBtsProfile(null); handleLike(); }}
-          />
-
-          {/* Chat Modal */}
-          {chatMatch && (
-            <ChatScreen match={chatMatch} onClose={() => setChatMatch(null)} />
-          )}
-        </SafeAreaView>
-      </View>
+      <AppInner />
     </SafeAreaProvider>
   );
 }
