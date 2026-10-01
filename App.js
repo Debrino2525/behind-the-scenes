@@ -1205,6 +1205,332 @@ function LikesYouScreen({ onMatchBack }) {
 }
 
 // ══════════════════════════════════════════════════
+//  PROFILE SCREEN (EDIT DETAILS & PHOTO)
+// ══════════════════════════════════════════════════
+function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
+  const [name, setName] = useState(userProfile?.name || 'New Member');
+  const [age, setAge] = useState(String(userProfile?.age || 25));
+  const [occupation, setOccupation] = useState(userProfile?.occupation || 'Creative & Entrepreneur');
+  const [city, setCity] = useState(userProfile?.currentCity || 'Accra');
+  const [hometown, setHometown] = useState(userProfile?.homeTown || 'Kumasi');
+  const [tribe, setTribe] = useState(userProfile?.tribe || 'Asante');
+  const [intent, setIntent] = useState(userProfile?.intent || 'Long-term leading to marriage');
+  const [btsCaption, setBtsCaption] = useState(userProfile?.btsCaption || 'Sunday waakye in my oversized t-shirt, completely unedited.');
+  const [btsHabit, setBtsHabit] = useState(userProfile?.btsHabit || 'I listen to Daddy Lumba every Sunday morning.');
+  const [photo, setPhoto] = useState(
+    userProfile?.liveSelfieUri || 
+    userProfile?.photo || 
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80'
+  );
+  const [selectedCountry, setSelectedCountry] = useState(
+    COUNTRIES_LIST.find(c => c.name === userProfile?.country) || COUNTRIES_LIST[0]
+  );
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Pick or snap new profile picture
+  const handleChangePhoto = () => {
+    Alert.alert(
+      'Change Profile Photo',
+      'Choose an option to update your BTS photo:',
+      [
+        {
+          text: 'Take Live Selfie / Photo',
+          onPress: async () => {
+            try {
+              const { status } = await ImagePicker.requestCameraPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permission needed', 'Camera access is required to take a new photo.');
+                return;
+              }
+              const res = await ImagePicker.launchCameraAsync({
+                cameraType: ImagePicker.CameraType.front,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.85,
+              });
+              if (!res.canceled && res.assets && res.assets[0]?.uri) {
+                setPhoto(res.assets[0].uri);
+              }
+            } catch (err) {
+              Alert.alert('Camera Error', err?.message || 'Could not open camera');
+            }
+          }
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: async () => {
+            try {
+              const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permission needed', 'Gallery access is required.');
+                return;
+              }
+              const res = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.85,
+              });
+              if (!res.canceled && res.assets && res.assets[0]?.uri) {
+                setPhoto(res.assets[0].uri);
+              }
+            } catch (err) {
+              Alert.alert('Gallery Error', err?.message || 'Could not open gallery');
+            }
+          }
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleSave = () => {
+    const updated = {
+      ...userProfile,
+      name: name.trim(),
+      age: parseInt(age) || 25,
+      occupation: occupation.trim(),
+      currentCity: city.trim(),
+      homeTown: hometown.trim(),
+      tribe: tribe.trim(),
+      intent,
+      btsCaption: btsCaption.trim(),
+      btsHabit: btsHabit.trim(),
+      photo,
+      country: selectedCountry.name,
+      countryFlag: selectedCountry.flag,
+    };
+    onUpdateProfile(updated);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
+    Alert.alert('Profile Saved', 'Your Behind The Scenes profile has been updated!');
+  };
+
+  return (
+    <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}>
+      {/* Profile Header */}
+      <View style={{ alignItems: 'center', marginBottom: 20 }}>
+        {/* Photo Container with Camera Badge */}
+        <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8} style={{ position: 'relative' }}>
+          <View style={{
+            width: 110,
+            height: 110,
+            borderRadius: 55,
+            borderWidth: 3,
+            borderColor: C.accent,
+            overflow: 'hidden',
+            backgroundColor: '#1E2433',
+            shadowColor: C.accent,
+            shadowOpacity: 0.3,
+            shadowRadius: 10,
+            elevation: 6
+          }}>
+            <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+          </View>
+          <View style={{
+            position: 'absolute',
+            bottom: 2,
+            right: 2,
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: C.accent,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 2,
+            borderColor: C.bg
+          }}>
+            <Text style={{ fontSize: 14 }}>📷</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleChangePhoto} style={{ marginTop: 8 }}>
+          <Text style={{ color: C.accent, fontWeight: '800', fontSize: 12 }}>Change Photo</Text>
+        </TouchableOpacity>
+
+        <Text style={[s.heading, { color: C.text, fontSize: 20, marginTop: 8 }]}>
+          {name}, {age}
+        </Text>
+        <Text style={[s.bodySmall, { color: C.textSoft }]}>
+          {selectedCountry.flag} {city} • {tribe}
+        </Text>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: C.emerald }}>
+          <Text style={{ fontSize: 12 }}>🛡️</Text>
+          <Text style={{ color: C.emerald, fontWeight: '800', fontSize: 11 }}>Gold Verified Member (18+)</Text>
+        </View>
+      </View>
+
+      {/* Save Success Banner */}
+      {savedSuccess && (
+        <View style={{ padding: 12, borderRadius: 14, backgroundColor: 'rgba(16,185,129,0.2)', borderWidth: 1, borderColor: C.emerald, marginBottom: 16, alignItems: 'center' }}>
+          <Text style={{ color: C.emerald, fontWeight: '800', fontSize: 12 }}>✓ Changes Saved Successfully</Text>
+        </View>
+      )}
+
+      {/* Edit Form */}
+      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+        <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 14 }}>
+          PERSONAL DETAILS
+        </Text>
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Full Name</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 14 }]}
+          value={name}
+          onChangeText={setName}
+          placeholder="Your full name"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Age</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 14 }]}
+          value={age}
+          onChangeText={setAge}
+          keyboardType="number-pad"
+          maxLength={2}
+          placeholder="e.g. 26"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Occupation / Profession</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 14 }]}
+          value={occupation}
+          onChangeText={setOccupation}
+          placeholder="e.g. Creative Designer, Software Engineer"
+          placeholderTextColor={C.textMuted}
+        />
+      </View>
+
+      {/* Cultural Roots */}
+      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+        <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 14 }}>
+          COUNTRY & CULTURAL ROOTS
+        </Text>
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>Country</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', height: 44 }} style={{ maxHeight: 44, marginBottom: 14 }}>
+          {COUNTRIES_LIST.map((c, i) => {
+            const active = selectedCountry.name === c.name;
+            return (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setSelectedCountry(c)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 12,
+                  backgroundColor: active ? C.accent : 'rgba(255,255,255,0.06)',
+                  borderWidth: 1,
+                  borderColor: active ? C.accent : C.border,
+                  marginRight: 8
+                }}
+              >
+                <Text style={{ fontSize: 14, marginRight: 6 }}>{c.flag}</Text>
+                <Text style={{ color: active ? '#000' : '#FFF', fontWeight: '800', fontSize: 11 }}>{c.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Current Living City</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 14 }]}
+          value={city}
+          onChangeText={setCity}
+          placeholder="Current city"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Hometown / Ancestral Roots</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 14 }]}
+          value={hometown}
+          onChangeText={setHometown}
+          placeholder="Hometown"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Tribe / Heritage</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 14 }]}
+          value={tribe}
+          onChangeText={setTribe}
+          placeholder="Tribe or cultural heritage"
+          placeholderTextColor={C.textMuted}
+        />
+      </View>
+
+      {/* Candid BTS Moments */}
+      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+        <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 14 }}>
+          BEHIND-THE-SCENES MOMENT
+        </Text>
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Candid Caption</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', height: 80, textAlign: 'left', textAlignVertical: 'top', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 13 }]}
+          multiline
+          value={btsCaption}
+          onChangeText={setBtsCaption}
+          placeholder="What do you look like in real life when not trying?"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Daily Quirky Habit</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 14, padding: 12, fontSize: 14 }]}
+          value={btsHabit}
+          onChangeText={setBtsHabit}
+          placeholder="e.g. I listen to Daddy Lumba every Sunday morning"
+          placeholderTextColor={C.textMuted}
+        />
+      </View>
+
+      {/* Action Buttons */}
+      <TouchableOpacity
+        style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18, marginBottom: 12 }]}
+        onPress={handleSave}
+      >
+        <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Save Profile Changes ✓</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={{ width: '100%', alignItems: 'center', paddingVertical: 14, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border, marginBottom: 12 }}
+        onPress={() => {
+          Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign Out', style: 'destructive', onPress: onLogout }
+          ]);
+        }}
+      >
+        <Text style={{ color: C.textSoft, fontWeight: '800', fontSize: 13 }}>Sign Out of BTS</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={{ width: '100%', alignItems: 'center', paddingVertical: 10 }}
+        onPress={() => {
+          Alert.alert(
+            'Delete Account & Data',
+            'This will permanently purge your matches, chats, verified biometric selfie, and candid data from Behind The Scenes. This action cannot be undone.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete Permanently', style: 'destructive', onPress: onLogout }
+            ]
+          );
+        }}
+      >
+        <Text style={{ color: C.red, fontWeight: '700', fontSize: 11 }}>Delete Account (Data Purge)</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  MAIN APP
 // ══════════════════════════════════════════════════
 export default function App() {
@@ -1319,6 +1645,17 @@ export default function App() {
         />
       )}
 
+      {tab === 'profile' && (
+        <ProfileScreen
+          userProfile={userProfile}
+          onUpdateProfile={(updated) => setUserProfile(updated)}
+          onLogout={() => {
+            setUserProfile(null);
+            setTab('discover');
+          }}
+        />
+      )}
+
       {/* Floating Bottom Navigation Bar */}
       <View style={s.bottomBar}>
         <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('discover')}>
@@ -1344,9 +1681,9 @@ export default function App() {
           <Text style={[s.bottomTabText, tab === 'matches' && s.bottomTabActive]}>Matches</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={s.bottomTabBtn} onPress={() => Alert.alert('Behind The Scenes Safety', '18+ Verified • Child Safety Standards Enforced • Account Deletion Available')}>
-          <Text style={s.bottomTabIcon}>🛡️</Text>
-          <Text style={s.bottomTabText}>Safety</Text>
+        <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('profile')}>
+          <Text style={[s.bottomTabIcon, tab === 'profile' && { transform: [{ scale: 1.2 }] }]}>👤</Text>
+          <Text style={[s.bottomTabText, tab === 'profile' && s.bottomTabActive]}>Profile</Text>
         </TouchableOpacity>
       </View>
 
