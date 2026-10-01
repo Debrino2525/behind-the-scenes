@@ -1512,56 +1512,517 @@ function ChatScreen({ match, onClose }) {
 // ══════════════════════════════════════════════════
 //  DATE DROPS SCREEN (REAL DATES FEED)
 // ══════════════════════════════════════════════════
-function DateDropsScreen({ onPostDate }) {
-  const [drops, setDrops] = useState(INITIAL_DATE_DROPS);
+function DateDropsScreen({ userProfile }) {
+  const [drops, setDrops] = useState(() => 
+    INITIAL_DATE_DROPS.map((d, idx) => ({
+      ...d,
+      comments: idx === 0 
+        ? [
+            { id: 'c1', author: 'Ama Pokua', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=300&q=80', text: 'Buka waakye with fried fish is an undefeated first date! So happy for you two! 🇬🇭✨', time: '1h ago' },
+            { id: 'c2', author: 'Kofi Mensah', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', text: 'Charlie Kweku set the standard high! Pure chemistry 🔥', time: '45m ago' }
+          ]
+        : [
+            { id: 'c3', author: 'Amina El Fassi', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', text: 'That Le Morne sunset looks magical! Sega music on the beach is the ultimate vibe 🇲🇺❤️', time: '2h ago' }
+          ]
+    }))
+  );
+
+  // Upload Date Drop Modal State
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [newCouple, setNewCouple] = useState(`${userProfile?.name || 'Me'} & Match`);
+  const [newVenue, setNewVenue] = useState('');
+  const [newCaption, setNewCaption] = useState('');
+  const [newPhoto, setNewPhoto] = useState(null);
+  const [newVibe, setNewVibe] = useState('⭐⭐⭐⭐⭐ Pure Chemistry');
+
+  // Comments Modal State
+  const [activeCommentDropId, setActiveCommentDropId] = useState(null);
+  const [commentInput, setCommentInput] = useState('');
 
   const cheer = (id) => {
     setDrops(prev => prev.map(d => d.id === id ? { ...d, cheersCount: d.cheersCount + 1 } : d));
     Alert.alert('🥂 Cheers Sent!', 'You cheered on this date connection!');
   };
 
+  const handlePickGallery = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setNewPhoto(res.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Photo Picker', 'Could not open image picker.');
+    }
+  };
+
+  const handlePickCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Camera Permission', 'Please allow camera access to take a date selfie.');
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setNewPhoto(res.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Camera', 'Could not open camera.');
+    }
+  };
+
+  const handleSubmitDateDrop = () => {
+    if (!newPhoto) {
+      Alert.alert('Photo Required', 'Please attach a photo or selfie of your date moment!');
+      return;
+    }
+    if (!newCaption.trim()) {
+      Alert.alert('Story Required', 'Please write a brief caption or story about your date!');
+      return;
+    }
+
+    const createdDrop = {
+      id: `drop-${Date.now()}`,
+      couple: newCouple.trim() || `${userProfile?.name || 'Me'} & Match`,
+      matchTag: 'Matched on Behind The Scenes • Verified Date',
+      photo: newPhoto,
+      venue: newVenue.trim() || 'Romantic Secret Spot',
+      caption: newCaption.trim(),
+      vibeRating: newVibe,
+      likesCount: 1,
+      cheersCount: 1,
+      comments: [],
+      timestamp: 'Just now'
+    };
+
+    setDrops(prev => [createdDrop, ...prev]);
+    setShowUploadModal(false);
+    setNewCaption('');
+    setNewVenue('');
+    setNewPhoto(null);
+    Alert.alert('🎉 Date Dropped!', 'Your real date story has been posted to the BTS community feed!');
+  };
+
+  const handleAddComment = () => {
+    if (!commentInput.trim() || !activeCommentDropId) return;
+    const authorName = userProfile?.name || 'You';
+    const authorAvatar = userProfile?.photos?.[0] || userProfile?.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+    const newComment = {
+      id: `comm-${Date.now()}`,
+      author: authorName,
+      avatar: authorAvatar,
+      text: commentInput.trim(),
+      time: 'Just now'
+    };
+
+    setDrops(prev => prev.map(d => {
+      if (d.id === activeCommentDropId) {
+        return {
+          ...d,
+          comments: [...(d.comments || []), newComment]
+        };
+      }
+      return d;
+    }));
+
+    setCommentInput('');
+  };
+
+  const activeDrop = drops.find(d => d.id === activeCommentDropId);
+
   return (
     <View style={{ flex: 1 }}>
+      {/* Feed Header */}
       <View style={s.screenHeader}>
-        <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>🥂 BTS Date Drops</Text>
-        <TouchableOpacity style={s.btnPrimarySm} onPress={onPostDate}>
-          <Text style={{ color: '#000', fontWeight: '900', fontSize: 11 }}>+ Drop Date</Text>
+        <View>
+          <Text style={[s.bodySmall, { color: C.text, fontWeight: '900', fontSize: 16 }]}>🥂 BTS Date Drops</Text>
+          <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>Real singles. Real verified dates.</Text>
+        </View>
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: C.accent,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 20,
+            gap: 6
+          }} 
+          onPress={() => setShowUploadModal(true)}
+        >
+          <Text style={{ fontSize: 13 }}>📸</Text>
+          <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Drop a Date</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Date Drops Feed List */}
       <FlatList
         data={drops}
         keyExtractor={(d, idx) => `${d.id}-${idx}`}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        renderItem={({ item }) => (
-          <View style={s.dateDropCard}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 12 }}>
-              <View>
-                <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>{item.couple}</Text>
-                <Text style={[s.bodyTiny, { color: C.accent }]}>{item.matchTag}</Text>
+        contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
+        renderItem={({ item }) => {
+          const commentsList = item.comments || [];
+          return (
+            <View style={[s.dateDropCard, { marginBottom: 20 }]}>
+              {/* Card Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 }}>
+                <View>
+                  <Text style={[s.bodySmall, { color: C.text, fontWeight: '800', fontSize: 15 }]}>{item.couple}</Text>
+                  <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '600', marginTop: 1 }]}>{item.matchTag}</Text>
+                </View>
+                <Text style={[s.bodyTiny, { color: C.textMuted }]}>{item.timestamp}</Text>
               </View>
-              <Text style={[s.bodyTiny, { color: C.textMuted }]}>{item.timestamp}</Text>
+
+              {/* Photo */}
+              <Image source={{ uri: item.photo }} style={{ width: '100%', height: 240, backgroundColor: '#10131B' }} />
+
+              {/* Card Body */}
+              <View style={{ padding: 14 }}>
+                <View style={[s.venuePill, { alignSelf: 'flex-start', marginBottom: 8 }]}>
+                  <Text style={[s.bodyTiny, { color: '#CBD5E1', fontWeight: '700' }]}>📍 {item.venue}</Text>
+                </View>
+
+                <Text style={[s.bodySmall, { color: '#F1F5F9', lineHeight: 20 }]}>"{item.caption}"</Text>
+
+                <View style={{ marginTop: 10 }}>
+                  <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800' }]}>{item.vibeRating}</Text>
+                </View>
+
+                {/* Interactive Action Bar: Cheers & Comments */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
+                  <TouchableOpacity 
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(255,184,0,0.12)',
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,184,0,0.3)'
+                    }} 
+                    onPress={() => cheer(item.id)}
+                  >
+                    <Text style={{ fontSize: 13, marginRight: 6 }}>🎉</Text>
+                    <Text style={{ color: C.accent, fontWeight: '800', fontSize: 12 }}>{item.cheersCount} Cheers</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.12)'
+                    }}
+                    onPress={() => setActiveCommentDropId(item.id)}
+                  >
+                    <Text style={{ fontSize: 13, marginRight: 6 }}>💬</Text>
+                    <Text style={{ color: '#E2E8F0', fontWeight: '800', fontSize: 12 }}>
+                      {commentsList.length} {commentsList.length === 1 ? 'Comment' : 'Comments'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          );
+        }}
+      />
+
+      {/* ───────────────────────────────────────────── */}
+      {/* 1. UPLOAD / DROP A DATE MODAL                 */}
+      {/* ───────────────────────────────────────────── */}
+      <Modal visible={showUploadModal} animationType="slide" transparent>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}
+        >
+          <View style={{ backgroundColor: '#0D1117', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '90%', paddingBottom: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+            {/* Modal Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+              <View>
+                <Text style={{ color: C.text, fontSize: 18, fontWeight: '900' }}>Drop Your Date Story 🥂</Text>
+                <Text style={{ color: C.accent, fontSize: 11, fontWeight: '700', marginTop: 2 }}>Share your real connection with the community</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowUploadModal(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 15 }}>✕</Text>
+              </TouchableOpacity>
             </View>
 
-            <Image source={{ uri: item.photo }} style={{ width: '100%', height: 220 }} />
+            <ScrollView contentContainerStyle={{ padding: 18 }}>
+              {/* Photo Upload Area */}
+              <Text style={{ color: C.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                Date Photo / Food / Moment *
+              </Text>
+              {newPhoto ? (
+                <View style={{ position: 'relative', width: '100%', height: 200, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
+                  <Image source={{ uri: newPhoto }} style={{ width: '100%', height: '100%' }} />
+                  <TouchableOpacity 
+                    onPress={handlePickGallery}
+                    style={{ position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}
+                  >
+                    <Text style={{ color: C.accent, fontSize: 11, fontWeight: '800' }}>Change Photo</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                  <TouchableOpacity 
+                    onPress={handlePickGallery} 
+                    style={{
+                      flex: 1,
+                      backgroundColor: 'rgba(255,255,255,0.04)',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(255,184,0,0.3)',
+                      borderStyle: 'dashed',
+                      borderRadius: 16,
+                      paddingVertical: 22,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Text style={{ fontSize: 24, marginBottom: 6 }}>🖼️</Text>
+                    <Text style={{ color: C.text, fontWeight: '800', fontSize: 12 }}>Choose from Photos</Text>
+                    <Text style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>System Photo Picker</Text>
+                  </TouchableOpacity>
 
-            <View style={{ padding: 12 }}>
-              <View style={s.venuePill}>
-                <Text style={[s.bodyTiny, { color: '#CBD5E1', fontWeight: '700' }]}>📍 {item.venue}</Text>
+                  <TouchableOpacity 
+                    onPress={handlePickCamera} 
+                    style={{
+                      flex: 1,
+                      backgroundColor: 'rgba(255,255,255,0.04)',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(255,255,255,0.15)',
+                      borderStyle: 'dashed',
+                      borderRadius: 16,
+                      paddingVertical: 22,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Text style={{ fontSize: 24, marginBottom: 6 }}>📸</Text>
+                    <Text style={{ color: C.text, fontWeight: '800', fontSize: 12 }}>Snap Date Selfie</Text>
+                    <Text style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>Live Camera</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Couple / Who was on date */}
+              <Text style={{ color: C.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                Couple / Who Was On The Date
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: C.border,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  color: C.text,
+                  fontSize: 14,
+                  marginBottom: 14
+                }}
+                value={newCouple}
+                onChangeText={setNewCouple}
+                placeholder="e.g. Ama & Kweku"
+                placeholderTextColor={C.textMuted}
+              />
+
+              {/* Venue & Spot */}
+              <Text style={{ color: C.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                Spot / Venue
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: C.border,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  color: C.text,
+                  fontSize: 14,
+                  marginBottom: 14
+                }}
+                value={newVenue}
+                onChangeText={setNewVenue}
+                placeholder="e.g. Buka Restaurant Osu / Le Morne Beach"
+                placeholderTextColor={C.textMuted}
+              />
+
+              {/* Vibe Selection */}
+              <Text style={{ color: C.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                Date Chemistry / Vibe
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                {[
+                  '⭐⭐⭐⭐⭐ Pure Chemistry',
+                  '🔥 Sparks & High Energy',
+                  '🥂 Smooth & Romantic',
+                  '🌊 Scenic Island Vibe',
+                  '🍲 Authentic Foodie Date'
+                ].map((v, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => setNewVibe(v)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 16,
+                      backgroundColor: newVibe === v ? 'rgba(255,184,0,0.2)' : 'rgba(255,255,255,0.04)',
+                      borderWidth: 1,
+                      borderColor: newVibe === v ? C.accent : 'rgba(255,255,255,0.1)',
+                      marginRight: 8
+                    }}
+                  >
+                    <Text style={{ color: newVibe === v ? C.accent : C.textMuted, fontSize: 11, fontWeight: '800' }}>{v}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Story / Caption */}
+              <Text style={{ color: C.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                Date Story / Caption *
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: C.border,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  color: C.text,
+                  fontSize: 14,
+                  minHeight: 80,
+                  textAlignVertical: 'top',
+                  marginBottom: 20
+                }}
+                value={newCaption}
+                onChangeText={setNewCaption}
+                placeholder="Tell the community how your date went, the vibe, the food..."
+                placeholderTextColor={C.textMuted}
+                multiline
+              />
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                onPress={handleSubmitDateDrop}
+                style={{
+                  backgroundColor: C.accent,
+                  paddingVertical: 15,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  elevation: 3
+                }}
+              >
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>Drop Date To Feed 🚀</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ───────────────────────────────────────────── */}
+      {/* 2. DATE DROP COMMENTS MODAL                   */}
+      {/* ───────────────────────────────────────────── */}
+      <Modal visible={!!activeCommentDropId} animationType="slide" transparent>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}
+        >
+          <View style={{ backgroundColor: '#0F131D', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', height: 520, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+            {/* Comments Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+              <View>
+                <Text style={{ color: C.text, fontSize: 17, fontWeight: '900' }}>
+                  Comments ({activeDrop?.comments?.length || 0})
+                </Text>
+                <Text style={{ color: C.accent, fontSize: 11, fontWeight: '700', marginTop: 2 }}>
+                  {activeDrop?.couple}
+                </Text>
               </View>
+              <TouchableOpacity onPress={() => setActiveCommentDropId(null)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 15 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-              <Text style={[s.bodySmall, { color: '#E2E8F0', marginTop: 8 }]}>"{item.caption}"</Text>
+            {/* Comments List */}
+            <FlatList
+              data={activeDrop?.comments || []}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={{ padding: 16, flexGrow: 1 }}
+              ListEmptyComponent={
+                <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>💬</Text>
+                  <Text style={{ color: C.text, fontWeight: '800', fontSize: 14 }}>No comments yet</Text>
+                  <Text style={{ color: C.textMuted, fontSize: 12, marginTop: 4 }}>Be the first to cheer them on!</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16, alignItems: 'flex-start' }}>
+                  <Image source={{ uri: item.avatar }} style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: C.accent }} />
+                  <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={{ color: C.text, fontWeight: '800', fontSize: 13 }}>{item.author}</Text>
+                      <Text style={{ color: C.textMuted, fontSize: 10 }}>{item.time}</Text>
+                    </View>
+                    <Text style={{ color: '#E2E8F0', fontSize: 13, lineHeight: 18 }}>{item.text}</Text>
+                  </View>
+                </View>
+              )}
+            />
 
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border }}>
-                <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '700' }]}>{item.vibeRating}</Text>
-                <TouchableOpacity style={s.cheerBtn} onPress={() => cheer(item.id)}>
-                  <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11 }}>🎉 {item.cheersCount} Cheers</Text>
-                </TouchableOpacity>
-              </View>
+            {/* Comment Input Bar */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', backgroundColor: '#0B0E16' }}>
+              <TextInput
+                style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderRadius: 20,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  color: C.text,
+                  fontSize: 13,
+                  marginRight: 10
+                }}
+                value={commentInput}
+                onChangeText={setCommentInput}
+                placeholder="Cheer on this date or ask a question..."
+                placeholderTextColor={C.textMuted}
+                onSubmitEditing={handleAddComment}
+              />
+              <TouchableOpacity
+                onPress={handleAddComment}
+                disabled={!commentInput.trim()}
+                style={{
+                  backgroundColor: commentInput.trim() ? C.accent : 'rgba(255,184,0,0.2)',
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>➤</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        )}
-      />
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -2132,7 +2593,7 @@ export default function App() {
 
       {tab === 'date_drops' && (
         <DateDropsScreen 
-          onPostDate={() => Alert.alert('Post Your Date Story', 'Upload your date selfie/food photo and tag the spot (e.g. Buka Restaurant Osu) to cheer the community!')}
+          userProfile={userProfile}
         />
       )}
 
