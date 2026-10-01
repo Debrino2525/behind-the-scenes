@@ -1,4 +1,4 @@
-import { Client, Account, Databases, Storage, Avatars, ID, Query } from 'appwrite';
+import { Client, Account, Databases, Storage, Avatars, ID, Query, OAuthProvider } from 'appwrite';
 import { INITIAL_PROFILES, INITIAL_MATCHES } from '../data/mockProfiles';
 import { INITIAL_DATE_DROPS } from '../data/dateDropsData';
 import { INITIAL_REPORTS, INITIAL_REFUNDS } from '../data/adminData';
@@ -20,6 +20,46 @@ export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
 export const avatars = new Avatars(client);
+export { OAuthProvider };
+
+/**
+ * Trigger Google OAuth authentication with Appwrite
+ * Redirects to Google login and returns to current URL
+ */
+export async function appwriteLoginWithGoogle(redirectPath = window.location.href) {
+  try {
+    return account.createOAuth2Session(
+      OAuthProvider.Google,
+      redirectPath,
+      redirectPath
+    );
+  } catch (err) {
+    console.error('[Appwrite] Google OAuth initiation failed', err);
+    throw err;
+  }
+}
+
+/**
+ * Retrieve currently logged-in Appwrite user session
+ */
+export async function appwriteGetCurrentUser() {
+  try {
+    return await account.get();
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Terminate active session
+ */
+export async function appwriteLogout() {
+  try {
+    await account.deleteSession('current');
+  } catch (err) {
+    console.info('[Appwrite] Logout handled', err?.message);
+  }
+}
 
 export const APPWRITE_CONFIG = {
   endpoint: 'https://fra.cloud.appwrite.io/v1',
