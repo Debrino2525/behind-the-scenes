@@ -46,7 +46,7 @@ import {
   clearLocalProfile 
 } from './lib/localStorage';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
+import { Audio } from './lib/audioService';
 import Svg, { Path } from 'react-native-svg';
 import { verifyHumanFace } from './lib/faceVerification';
 
