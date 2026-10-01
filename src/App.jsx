@@ -109,7 +109,7 @@ export default function App() {
       btsUnlocked: true
     };
 
-    setMatches(prev => [newMatchItem, ...prev]);
+    setMatches(prev => [newMatchItem, ...prev.filter(m => m.id !== matchedProfile.id)]);
     setNewMatchCelebration(matchedProfile);
   };
 
