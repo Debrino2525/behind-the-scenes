@@ -1,6 +1,8 @@
 import React from 'react';
 import { SlidersHorizontal, Flame, Sparkles, User, MessageCircleHeart, Shield, ShieldCheck, Wrench } from 'lucide-react';
 
+import { BtsEmblem } from './BtsBrandLockup';
+
 export default function Header({ 
   activeTab, 
   setActiveTab, 
@@ -14,21 +16,22 @@ export default function Header({
   isUserVerified
 }) {
   return (
-    <header className="sticky top-0 z-30 w-full max-w-md mx-auto glass-panel px-4 py-3 border-b border-white/10 flex items-center justify-between">
+    <header className="sticky top-0 z-30 w-full max-w-md mx-auto glass-panel px-4 py-2.5 border-b border-white/10 flex items-center justify-between">
       {/* Brand */}
-      <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('discover')}>
-        <div className="relative w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-red-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-          <span className="text-black font-extrabold text-sm tracking-tight">★</span>
+      <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setActiveTab('discover')}>
+        <div className="w-9 h-9 rounded-2xl bg-[#090b10] border border-[#F2E9D8]/30 flex items-center justify-center shadow-lg group-hover:border-[#F2E9D8] transition-all">
+          <BtsEmblem className="w-6 h-6" color="#F2E9D8" />
         </div>
-        <div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-base tracking-wide bg-gradient-to-r from-amber-400 via-orange-300 to-emerald-400 bg-clip-text text-transparent">
-              BEHIND THE SCENES
-            </span>
-          </div>
-          <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase -mt-0.5">
-            Real Vibes • No Fake Life
-          </p>
+        <div className="flex flex-col">
+          <span 
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+            className="text-[#F2E9D8] font-bold text-xs tracking-[0.16em] leading-tight"
+          >
+            BEHIND THE SCENES
+          </span>
+          <span className="text-[9px] text-[#A1A8B8] font-medium tracking-wider uppercase">
+            No Fake Life • Verified Dates
+          </span>
         </div>
       </div>
 

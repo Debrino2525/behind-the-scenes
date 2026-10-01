@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, ChevronRight, Sparkles } from 'lucide-react';
+import BtsBrandLockup from './BtsBrandLockup';
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -63,16 +64,11 @@ export default function AgeGate({ onVerified }) {
     return (
       <div className="min-h-screen bg-[#090b10] flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm text-center space-y-8">
-          {/* Logo */}
-          <div>
-            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-red-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-amber-500/20 mx-auto mb-4">
-              <span className="text-black font-extrabold text-2xl">★</span>
-            </div>
-            <h1 className="text-2xl font-black bg-gradient-to-r from-amber-400 via-orange-300 to-emerald-400 bg-clip-text text-transparent">
-              BEHIND THE SCENES
-            </h1>
-            <p className="text-xs text-slate-400 font-semibold tracking-wider uppercase mt-1">
-              Real Vibes • No Fake Life • Africa's Finest
+          {/* Official Brand Lockup */}
+          <div className="py-2">
+            <BtsBrandLockup size="lg" />
+            <p className="text-[11px] text-[#A1A8B8] font-semibold tracking-widest uppercase mt-4">
+              Real Vibes • No Fake Life • Pan-African & Global
             </p>
           </div>
 
