@@ -27,18 +27,23 @@ import {
 } from 'react-native';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 import { 
-  appwriteLoginWithGoogleMobile, 
-  appwriteGetCurrentUserMobile,
-  appwriteSendEmailOtp,
-  appwriteVerifyEmailOtp,
-  appwriteRegisterEmailPassword,
-  appwriteLoginEmailPassword,
-  appwriteSaveUserProfile,
-  appwriteGetUserProfile,
-  appwriteUploadPhoto,
-  appwriteUploadVoiceNote,
-  appwriteLogoutMobile
-} from './lib/appwrite';
+  supabaseLoginWithEmail,
+  supabaseSignUpWithEmail,
+  supabaseSendOtp,
+  supabaseVerifyOtp,
+  supabaseGetCurrentUser,
+  supabaseGetProfile,
+  supabaseSaveProfile,
+  supabaseUploadPhoto,
+  supabaseUploadVoiceNote,
+  supabaseSignOut
+} from './lib/supabaseAuth';
+import {
+  getProfilesFromDb,
+  recordSwipeInDb,
+  getDateDropsFromDb,
+  submitReportToDb
+} from './lib/supabase';
 import { 
   loadLocalProfile, 
   saveLocalProfile, 
@@ -304,17 +309,17 @@ function OnboardingScreen({ onComplete }) {
     }
   }, [countdown]);
 
-  // Check for active Appwrite user and restored database profile
+  // Check for active Supabase user and restored database profile
   useEffect(() => {
     async function checkExistingUser() {
       try {
-        const user = await appwriteGetCurrentUserMobile();
-        if (user && user.$id) {
-          if (user.name) setFullName(user.name);
+        const user = await supabaseGetCurrentUser();
+        if (user && user.id) {
+          if (user.user_metadata?.full_name) setFullName(user.user_metadata.full_name);
           if (user.email) setEmail(user.email);
 
           // Check if user ALREADY completed their profile in the database!
-          const existingProfile = await appwriteGetUserProfile(user.$id);
+          const existingProfile = await supabaseGetProfile(user.id);
           if (existingProfile && existingProfile.name) {
             await saveLocalProfile(existingProfile);
             onComplete(existingProfile);
@@ -351,8 +356,8 @@ function OnboardingScreen({ onComplete }) {
     setIsSendingCode(true);
     setError('');
     try {
-      const user = await appwriteLoginEmailPassword(cleanEmail, password);
-      const existingProfile = await appwriteGetUserProfile(user.$id);
+      const user = await supabaseLoginWithEmail(cleanEmail, password);
+      const existingProfile = await supabaseGetProfile(user.id);
       if (existingProfile && existingProfile.name) {
         await saveLocalProfile(existingProfile);
         onComplete(existingProfile);
@@ -372,35 +377,20 @@ function OnboardingScreen({ onComplete }) {
       setError('');
 
       // If active session already exists, skip directly to Age Check
-      const existing = await appwriteGetCurrentUserMobile();
+      const existing = await supabaseGetCurrentUser();
       if (existing) {
-        if (existing.name) setFullName(existing.name);
+        if (existing.user_metadata?.full_name) setFullName(existing.user_metadata.full_name);
         if (existing.email) setEmail(existing.email);
         setStep(3);
         return;
       }
 
-      const user = await appwriteLoginWithGoogleMobile();
-      if (user) {
-        if (user.name) setFullName(user.name);
-        if (user.email) setEmail(user.email);
-        setStep(3); // Proceed to Age Check
-      }
+      // Supabase Email OTP provides standard zero-password auth
+      Alert.alert('Sign In', 'Please use your email and password or request an email verification code below.');
     } catch (err) {
-      // In case session conflict occurred, fetch the current active session
-      try {
-        const user = await appwriteGetCurrentUserMobile();
-        if (user) {
-          if (user.name) setFullName(user.name);
-          if (user.email) setEmail(user.email);
-          setStep(3);
-          return;
-        }
-      } catch (e) {}
-
       Alert.alert(
-        'Google Authentication',
-        err?.message || 'Could not complete Google sign-in. You can sign up with email verification below.'
+        'Authentication',
+        err?.message || 'Please sign in or register with email below.'
       );
     } finally {
       setLoadingOAuth(false);
@@ -426,17 +416,16 @@ function OnboardingScreen({ onComplete }) {
     setError('');
 
     try {
-      const res = await appwriteSendEmailOtp(cleanEmail);
-      setOtpUserId(res.userId);
+      await supabaseSendOtp(cleanEmail);
       setAuthSubStep('otp');
       setCountdown(45);
-      Alert.alert('Code Dispatched! ✉️', `A 6-digit verification code has been sent to ${cleanEmail}. Please check your inbox and spam folder.`);
+      Alert.alert('Code Dispatched! ✉️', `A verification code has been sent to ${cleanEmail}. Please check your inbox and spam folder.`);
     } catch (err) {
-      console.warn('[Appwrite Send OTP]', err);
-      // If Appwrite rate limit or offline, offer fallback password registration
+      console.warn('[Supabase Send OTP]', err);
+      // If OTP rate limit, offer fallback password registration
       if (password && password.length >= 8) {
         try {
-          await appwriteRegisterEmailPassword(cleanEmail, password, cleanName);
+          await supabaseSignUpWithEmail(cleanEmail, password);
           setStep(3);
           return;
         } catch (regErr) {
@@ -453,7 +442,7 @@ function OnboardingScreen({ onComplete }) {
   // VERIFY 6-DIGIT EMAIL CODE
   const handleVerifyOtp = async () => {
     const cleanCode = otpCode.trim();
-    if (!cleanCode || cleanCode.length !== 6) {
+    if (!cleanCode || cleanCode.length < 6) {
       setError('Please enter the full 6-digit code sent to your email.');
       return;
     }
@@ -462,11 +451,11 @@ function OnboardingScreen({ onComplete }) {
     setError('');
 
     try {
-      await appwriteVerifyEmailOtp(otpUserId, cleanCode);
+      await supabaseVerifyOtp(email.trim(), cleanCode);
       setError('');
       setStep(3); // Advance to Age Check
     } catch (err) {
-      console.warn('[Appwrite Verify OTP]', err);
+      console.warn('[Supabase Verify OTP]', err);
       setError('Invalid or expired code. Please re-enter or tap Resend.');
     } finally {
       setIsVerifyingCode(false);
@@ -495,7 +484,7 @@ function OnboardingScreen({ onComplete }) {
     setIsSendingCode(true);
     setError('');
     try {
-      await appwriteRegisterEmailPassword(cleanEmail, password, cleanName);
+      await supabaseSignUpWithEmail(cleanEmail, password);
       setStep(3);
     } catch (err) {
       setError(err?.message || 'Registration failed. Try email code verification.');
@@ -722,13 +711,13 @@ function OnboardingScreen({ onComplete }) {
     // 1. Persist locally to device storage immediately
     await saveLocalProfile(profile);
 
-    // 2. Sync to Appwrite Cloud Database & Storage
+    // 2. Sync to Supabase Cloud Database & Storage
     try {
-      const user = await appwriteGetCurrentUserMobile();
-      if (user && user.$id) {
+      const user = await supabaseGetCurrentUser();
+      if (user && user.id) {
         if (capturedSelfieUri) {
           try {
-            const uploadedUrl = await appwriteUploadPhoto(capturedSelfieUri, `${user.$id}-avatar.jpg`);
+            const uploadedUrl = await supabaseUploadPhoto(capturedSelfieUri);
             if (uploadedUrl && uploadedUrl.startsWith('http')) {
               profile.photo = uploadedUrl;
               profile.photos[0] = uploadedUrl;
@@ -737,13 +726,13 @@ function OnboardingScreen({ onComplete }) {
         }
         if (onboardingVoiceUri) {
           try {
-            const uploadedVoice = await appwriteUploadVoiceNote(onboardingVoiceUri, `${user.$id}-intro.m4a`);
+            const uploadedVoice = await supabaseUploadVoiceNote(onboardingVoiceUri);
             if (uploadedVoice && uploadedVoice.startsWith('http')) {
               profile.voiceNoteUrl = uploadedVoice;
             }
           } catch (e) {}
         }
-        await appwriteSaveUserProfile(user.$id, profile);
+        await supabaseSaveProfile(user.id, profile);
         await saveLocalProfile(profile);
       }
     } catch (syncErr) {
@@ -948,7 +937,7 @@ function OnboardingScreen({ onComplete }) {
             <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 20 }]}>
               {authMode === 'signin' 
                 ? 'Welcome back! Sign in to access your BTS profile and matches'
-                : 'Synced with Appwrite Cloud Database & Verification'}
+                : 'Synced with Supabase Cloud Database & Verification'}
             </Text>
 
             {/* Quick Google OAuth option */}
@@ -2648,6 +2637,33 @@ function DateDropsScreen({ userProfile }) {
   const [activeCommentDropId, setActiveCommentDropId] = useState(null);
   const [commentInput, setCommentInput] = useState('');
 
+  useEffect(() => {
+    getDateDropsFromDb().then(remoteDrops => {
+      if (remoteDrops && remoteDrops.length > 0) {
+        setDrops(prev => {
+          const map = new Map();
+          remoteDrops.forEach(d => {
+            map.set(d.id, {
+              id: d.id,
+              couple: d.couple_title || d.couple,
+              matchTag: d.match_tag || d.matchTag || 'BTS Match',
+              photo: d.photo_url || d.photo,
+              venue: d.venue,
+              caption: d.caption,
+              vibeRating: d.vibe_rating || d.vibeRating || '⭐⭐⭐⭐⭐ Pure Chemistry',
+              likesCount: d.likes_count || 0,
+              cheersCount: d.cheers_count || 1,
+              comments: d.comments || [],
+              timestamp: 'Recently'
+            });
+          });
+          prev.forEach(d => { if (!map.has(d.id)) map.set(d.id, d); });
+          return Array.from(map.values());
+        });
+      }
+    });
+  }, []);
+
   const cheer = (id) => {
     setDrops(prev => prev.map(d => d.id === id ? { ...d, cheersCount: d.cheersCount + 1 } : d));
     Alert.alert('🥂 Cheers Sent!', 'You cheered on this date connection!');
@@ -2718,6 +2734,19 @@ function DateDropsScreen({ userProfile }) {
     setNewCaption('');
     setNewVenue('');
     setNewPhoto(null);
+
+    insertDateDropInDb({
+      user_id: userProfile?.id || null,
+      couple_title: createdDrop.couple,
+      match_tag: createdDrop.matchTag,
+      photo_url: createdDrop.photo || 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80',
+      venue: createdDrop.venue,
+      caption: createdDrop.caption,
+      vibe_rating: createdDrop.vibeRating,
+      likes_count: 1,
+      cheers_count: 1
+    }).catch(e => console.warn('[Supabase Insert DateDrop]', e));
+
     Alert.alert('🎉 Date Dropped!', 'Your real date story has been posted to the BTS community feed!');
   };
 
@@ -4077,7 +4106,7 @@ export default function App() {
     });
   }, [matches, userGender]);
 
-  // Restore authenticated session and profile on app start (instant local cache + Appwrite)
+  // Restore authenticated session and profile on app start (instant local cache + Supabase)
   useEffect(() => {
     let mounted = true;
     async function restoreSession() {
@@ -4090,10 +4119,10 @@ export default function App() {
           return;
         }
 
-        // 2. Query active Appwrite Cloud session & database
-        const user = await appwriteGetCurrentUserMobile();
-        if (user && user.$id) {
-          const remote = await appwriteGetUserProfile(user.$id);
+        // 2. Query active Supabase Cloud session & database
+        const user = await supabaseGetCurrentUser();
+        if (user && user.id) {
+          const remote = await supabaseGetProfile(user.id);
           if (mounted && remote && remote.name) {
             setUserProfile(remote);
             await saveLocalProfile(remote);
@@ -4120,6 +4149,12 @@ export default function App() {
 
   const handleLike = () => {
     if (!currentProfile) return;
+    recordSwipeInDb({
+      swiperId: userProfile?.id || userProfile?.email || 'current_user',
+      targetId: currentProfile.id,
+      isLike: true,
+      isSuperLike: false
+    });
     const newMatch = {
       id: currentProfile.id,
       name: currentProfile.name,
@@ -4140,8 +4175,26 @@ export default function App() {
     setCurrentIdx(prev => prev + 1);
   };
 
-  const handlePass = () => setCurrentIdx(prev => prev + 1);
-  const handleReport = (name) => Alert.alert('Report Submitted', `Your report about ${name} has been received. Our safety team will review within 24 hours.`);
+  const handlePass = () => {
+    if (currentProfile) {
+      recordSwipeInDb({
+        swiperId: userProfile?.id || userProfile?.email || 'current_user',
+        targetId: currentProfile.id,
+        isLike: false,
+        isSuperLike: false
+      });
+    }
+    setCurrentIdx(prev => prev + 1);
+  };
+
+  const handleReport = (name) => {
+    submitReportToDb({
+      reported_user_name: name,
+      reason: 'Safety/Catfish report submitted via Mobile App',
+      reporter_id: userProfile?.id || null
+    });
+    Alert.alert('Report Submitted', `Your report about ${name} has been received. Our safety team will review within 24 hours.`);
+  };
 
   if (loadingSession) {
     return (
@@ -4253,9 +4306,9 @@ export default function App() {
                 setUserProfile(updated);
                 await saveLocalProfile(updated);
                 try {
-                  const user = await appwriteGetCurrentUserMobile();
-                  if (user && user.$id) {
-                    await appwriteSaveUserProfile(user.$id, updated);
+                  const user = await supabaseGetCurrentUser();
+                  if (user && user.id) {
+                    await supabaseSaveProfile(user.id, updated);
                   }
                 } catch (e) {
                   console.warn('[Sync Profile Update]', e);
@@ -4263,7 +4316,7 @@ export default function App() {
               }}
               onLogout={async () => {
                 await clearLocalProfile();
-                await appwriteLogoutMobile();
+                await supabaseSignOut();
                 setUserProfile(null);
                 setTab('discover');
               }}

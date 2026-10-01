@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.26",
     "expo-asset": "~57.0.18",
     "expo-audio": "~57.0.5",
