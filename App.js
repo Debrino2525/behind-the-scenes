@@ -1260,11 +1260,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
           text: 'Choose from Gallery',
           onPress: async () => {
             try {
-              const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-              if (status !== 'granted') {
-                Alert.alert('Permission needed', 'Gallery access is required.');
-                return;
-              }
+              // Direct Android System Photo Picker (Zero broad media permissions required)
               const res = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
