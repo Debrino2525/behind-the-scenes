@@ -215,25 +215,37 @@ export const INITIAL_MATCHES = [
     id: "gh-1",
     name: "Nana Ama",
     photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80"
+    ],
     lastMessage: "Chale you know you're owing me a Kelewele date right? 🌶️",
     time: "10m ago",
     unread: true,
     online: true,
     hometown: "Kumasi",
     currentCity: "Accra",
-    country: "Ghana"
+    country: "Ghana",
+    countryFlag: "🇬🇭"
   },
   {
     id: "mu-1",
     name: "Priya",
     photo: "https://images.unsplash.com/photo-1616766098956-c81f12114571?auto=format&fit=crop&w=300&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1616766098956-c81f12114571?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80"
+    ],
     lastMessage: "Have you ever tried dholl puri? Making some this weekend!",
     time: "1h ago",
     unread: true,
     online: true,
     hometown: "Flic en Flac",
     currentCity: "Port Louis",
-    country: "Mauritius"
+    country: "Mauritius",
+    countryFlag: "🇲🇺"
   }
 ];
 

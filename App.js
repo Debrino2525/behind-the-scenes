@@ -427,6 +427,7 @@ function OnboardingScreen({ onComplete }) {
       setError('Please complete the live selfie check first.');
       return;
     }
+    const mainPhoto = capturedSelfieUri || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80';
     onComplete({
       name: fullName.trim() || 'New Member',
       age: calculateAge() || 25,
@@ -439,7 +440,13 @@ function OnboardingScreen({ onComplete }) {
       btsCaption,
       btsHabit,
       verified: isVerified,
-      liveSelfieUri: capturedSelfieUri
+      liveSelfieUri: capturedSelfieUri,
+      photo: mainPhoto,
+      photos: [
+        mainPhoto,
+        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80'
+      ]
     });
   };
 
@@ -1306,7 +1313,16 @@ function ChatScreen({ match, onClose }) {
   ]);
   const [input, setInput] = useState('');
   const [showIcebreakers, setShowIcebreakers] = useState(true);
+  const [showPhotosModal, setShowPhotosModal] = useState(false);
   const flatListRef = useRef(null);
+
+  const matchPhotos = Array.isArray(match.photos) && match.photos.length > 0
+    ? match.photos
+    : [
+        match.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80'
+      ];
 
   const send = (txt) => {
     const content = txt || input;
@@ -1341,14 +1357,14 @@ function ChatScreen({ match, onClose }) {
               <Text style={{ color: C.text, fontSize: 18, fontWeight: '700' }}>←</Text>
             </TouchableOpacity>
             
-            <View style={{ position: 'relative', marginLeft: 12 }}>
+            <TouchableOpacity onPress={() => setShowPhotosModal(true)} style={{ position: 'relative', marginLeft: 12 }}>
               <Image source={{ uri: match.photo }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: C.accent }} />
               {match.online && (
                 <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: C.emerald, borderWidth: 1.5, borderColor: C.bg }} />
               )}
-            </View>
+            </TouchableOpacity>
 
-            <View style={{ marginLeft: 12, flex: 1 }}>
+            <TouchableOpacity onPress={() => setShowPhotosModal(true)} style={{ marginLeft: 12, flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={[s.bodySmall, { color: C.text, fontWeight: '800', fontSize: 15 }]}>{match.name}</Text>
                 <View style={{ backgroundColor: 'rgba(212,175,55,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: C.accent }}>
@@ -1358,8 +1374,60 @@ function ChatScreen({ match, onClose }) {
               <Text style={[s.bodyTiny, { color: match.online ? C.emerald : C.textMuted, marginTop: 1 }]}>
                 {match.online ? 'Online now' : 'Active today'} • {match.country || 'Ghana'}
               </Text>
-            </View>
+            </TouchableOpacity>
+
+            {/* View Connected Match's 3 Photos */}
+            <TouchableOpacity 
+              onPress={() => setShowPhotosModal(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255,184,0,0.12)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,184,0,0.35)',
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 12
+              }}
+            >
+              <Text style={{ fontSize: 12, marginRight: 4 }}>📸</Text>
+              <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11 }}>3 Photos</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Connected Match 3-Photo Showcase Modal */}
+          <Modal visible={showPhotosModal} transparent animationType="fade">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+              <View style={{ backgroundColor: C.card, borderRadius: 24, padding: 18, borderWidth: 1, borderColor: C.border, width: '100%', maxWidth: 360 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <View>
+                    <Text style={{ color: C.text, fontSize: 17, fontWeight: '900' }}>{match.name}'s 3 Photos</Text>
+                    <Text style={{ color: C.accent, fontSize: 11, fontWeight: '700', marginTop: 2 }}>✓ Connected Match • Verified</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowPhotosModal(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 14 }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* 3 Photos Horizontal Carousel */}
+                <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ borderRadius: 16, overflow: 'hidden' }}>
+                  {matchPhotos.map((p, idx) => (
+                    <View key={idx} style={{ width: SCREEN_WIDTH > 360 ? 324 : SCREEN_WIDTH - 76, height: 300, position: 'relative' }}>
+                      <Image source={{ uri: p }} style={{ width: '100%', height: '100%', resizeMode: 'cover', borderRadius: 16 }} />
+                      <View style={{ position: 'absolute', bottom: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                        <Text style={{ color: C.accent, fontSize: 10, fontWeight: '900' }}>
+                          {idx === 0 ? '★ Main Profile Picture' : `Showcase Photo ${idx + 1}`}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+                <Text style={{ color: C.textMuted, fontSize: 11, textAlign: 'center', marginTop: 10 }}>
+                  Swipe to view all 3 photos • Connected on BTS
+                </Text>
+              </View>
+            </View>
+          </Modal>
 
           {/* Messages */}
           <FlatList
@@ -1548,24 +1616,31 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
   const [intent, setIntent] = useState(userProfile?.intent || 'Long-term leading to marriage');
   const [btsCaption, setBtsCaption] = useState(userProfile?.btsCaption || 'Sunday waakye in my oversized t-shirt, completely unedited.');
   const [btsHabit, setBtsHabit] = useState(userProfile?.btsHabit || 'I listen to Daddy Lumba every Sunday morning.');
-  const [photo, setPhoto] = useState(
-    userProfile?.liveSelfieUri || 
-    userProfile?.photo || 
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80'
-  );
-  const [selectedCountry, setSelectedCountry] = useState(
-    COUNTRIES_LIST.find(c => c.name === userProfile?.country) || COUNTRIES_LIST[0]
-  );
+  
+  // 3-Picture Array (Slot 0 is main profile picture, Slots 1 and 2 for connected matches)
+  const initialPhotos = Array.isArray(userProfile?.photos) && userProfile.photos.length > 0
+    ? [
+        userProfile.photos[0] || userProfile?.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80',
+        userProfile.photos[1] || 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
+        userProfile.photos[2] || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80',
+      ]
+    : [
+        userProfile?.liveSelfieUri || userProfile?.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80'
+      ];
+  const [photos, setPhotos] = useState(initialPhotos);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Pick or snap new profile picture
-  const handleChangePhoto = () => {
+  // Pick or snap photo for specific slot (0 = Profile Photo, 1 = Photo 2, 2 = Photo 3)
+  const handleChangePhotoIndex = (index) => {
+    const slotTitle = index === 0 ? 'Main Profile Picture' : `Match Showcase Photo ${index + 1}`;
     Alert.alert(
-      'Change Profile Photo',
-      'Choose an option to update your BTS photo:',
+      `Update ${slotTitle}`,
+      'Choose an option to update this photo for your connected matches:',
       [
         {
-          text: 'Take Live Selfie / Photo',
+          text: 'Take Live Selfie / Camera',
           onPress: async () => {
             try {
               const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -1580,7 +1655,9 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
                 quality: 0.85,
               });
               if (!res.canceled && res.assets && res.assets[0]?.uri) {
-                setPhoto(res.assets[0].uri);
+                const nextPhotos = [...photos];
+                nextPhotos[index] = res.assets[0].uri;
+                setPhotos(nextPhotos);
               }
             } catch (err) {
               Alert.alert('Camera Error', err?.message || 'Could not open camera');
@@ -1591,7 +1668,6 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
           text: 'Choose from Gallery',
           onPress: async () => {
             try {
-              // Direct Android System Photo Picker (Zero broad media permissions required)
               const res = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
@@ -1599,7 +1675,9 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
                 quality: 0.85,
               });
               if (!res.canceled && res.assets && res.assets[0]?.uri) {
-                setPhoto(res.assets[0].uri);
+                const nextPhotos = [...photos];
+                nextPhotos[index] = res.assets[0].uri;
+                setPhotos(nextPhotos);
               }
             } catch (err) {
               Alert.alert('Gallery Error', err?.message || 'Could not open gallery');
@@ -1623,26 +1701,26 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
       intent,
       btsCaption: btsCaption.trim(),
       btsHabit: btsHabit.trim(),
-      photo,
-      country: selectedCountry.name,
-      countryFlag: selectedCountry.flag,
+      photo: photos[0],
+      photos,
+      country: userProfile?.country || 'Ghana',
+      countryFlag: userProfile?.countryFlag || '🇬🇭',
     };
     onUpdateProfile(updated);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
-    Alert.alert('Profile Saved', 'Your Behind The Scenes profile has been updated!');
+    Alert.alert('Profile Saved', 'Your 3 photos and profile details have been saved!');
   };
 
   return (
     <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}>
       {/* Profile Header */}
-      <View style={{ alignItems: 'center', marginBottom: 20 }}>
-        {/* Photo Container with Camera Badge */}
-        <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8} style={{ position: 'relative' }}>
+      <View style={{ alignItems: 'center', marginBottom: 18 }}>
+        <View style={{ position: 'relative' }}>
           <View style={{
-            width: 110,
-            height: 110,
-            borderRadius: 55,
+            width: 100,
+            height: 100,
+            borderRadius: 50,
             borderWidth: 3,
             borderColor: C.accent,
             overflow: 'hidden',
@@ -1652,34 +1730,30 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
             shadowRadius: 10,
             elevation: 6
           }}>
-            <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+            <Image source={{ uri: photos[0] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
           </View>
           <View style={{
             position: 'absolute',
-            bottom: 2,
-            right: 2,
-            width: 32,
-            height: 32,
-            borderRadius: 16,
+            bottom: 0,
+            right: 0,
+            width: 28,
+            height: 28,
+            borderRadius: 14,
             backgroundColor: C.accent,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 2,
             borderColor: C.bg
           }}>
-            <Text style={{ fontSize: 14 }}>📷</Text>
+            <Text style={{ fontSize: 12 }}>★</Text>
           </View>
-        </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity onPress={handleChangePhoto} style={{ marginTop: 8 }}>
-          <Text style={{ color: C.accent, fontWeight: '800', fontSize: 12 }}>Change Photo</Text>
-        </TouchableOpacity>
-
-        <Text style={[s.heading, { color: C.text, fontSize: 20, marginTop: 8 }]}>
+        <Text style={[s.heading, { color: C.text, fontSize: 20, marginTop: 10 }]}>
           {name}, {age}
         </Text>
-        <Text style={[s.bodySmall, { color: C.textSoft }]}>
-          {selectedCountry.flag} {city} • {tribe}
+        <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 2 }]}>
+          {userProfile?.countryFlag || '🇬🇭'} {city} • {tribe}
         </Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: C.emerald }}>
@@ -1694,6 +1768,123 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
           <Text style={{ color: C.emerald, fontWeight: '800', fontSize: 12 }}>✓ Changes Saved Successfully</Text>
         </View>
       )}
+
+      {/* 3 Photos Gallery (Visible to Connected Matches) */}
+      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1 }}>
+            YOUR 3 MATCH PHOTOS
+          </Text>
+          <View style={{ backgroundColor: 'rgba(255,184,0,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+            <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800' }}>3 Photos Total</Text>
+          </View>
+        </View>
+        <Text style={{ color: C.textSoft, fontSize: 11, marginBottom: 14, lineHeight: 16 }}>
+          Connected matches can view all 3 photos. Photo 1 is your main avatar.
+        </Text>
+
+        <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
+          {/* Photo 1: Main Profile Picture */}
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={() => handleChangePhotoIndex(0)} 
+              activeOpacity={0.8}
+              style={{
+                width: '100%',
+                aspectRatio: 1,
+                borderRadius: 16,
+                borderWidth: 2,
+                borderColor: C.accent,
+                overflow: 'hidden',
+                backgroundColor: '#1E2433',
+                position: 'relative'
+              }}
+            >
+              <Image source={{ uri: photos[0] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+              <View style={{ position: 'absolute', bottom: 4, left: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 2, borderRadius: 6, alignItems: 'center' }}>
+                <Text style={{ color: C.accent, fontSize: 9, fontWeight: '900' }}>★ Main Avatar</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleChangePhotoIndex(0)} style={{ marginTop: 6, paddingVertical: 2 }}>
+              <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800' }}>Change</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Photo 2: Match View Photo 2 */}
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={() => handleChangePhotoIndex(1)} 
+              activeOpacity={0.8}
+              style={{
+                width: '100%',
+                aspectRatio: 1,
+                borderRadius: 16,
+                borderWidth: 1.5,
+                borderColor: photos[1] ? 'rgba(255,255,255,0.2)' : 'rgba(255,184,0,0.4)',
+                overflow: 'hidden',
+                backgroundColor: '#161922',
+                justifyContent: 'center',
+                alignItems: 'center',
+                position: 'relative'
+              }}
+            >
+              {photos[1] ? (
+                <>
+                  <Image source={{ uri: photos[1] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                  <View style={{ position: 'absolute', bottom: 4, left: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 2, borderRadius: 6, alignItems: 'center' }}>
+                    <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>Photo 2</Text>
+                  </View>
+                </>
+              ) : (
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontSize: 22, color: C.accent }}>+</Text>
+                  <Text style={{ color: C.textMuted, fontSize: 9, fontWeight: '700' }}>Upload</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleChangePhotoIndex(1)} style={{ marginTop: 6, paddingVertical: 2 }}>
+              <Text style={{ color: C.textSoft, fontSize: 10, fontWeight: '800' }}>{photos[1] ? 'Replace' : 'Add'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Photo 3: Match View Photo 3 */}
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={() => handleChangePhotoIndex(2)} 
+              activeOpacity={0.8}
+              style={{
+                width: '100%',
+                aspectRatio: 1,
+                borderRadius: 16,
+                borderWidth: 1.5,
+                borderColor: photos[2] ? 'rgba(255,255,255,0.2)' : 'rgba(255,184,0,0.4)',
+                overflow: 'hidden',
+                backgroundColor: '#161922',
+                justifyContent: 'center',
+                alignItems: 'center',
+                position: 'relative'
+              }}
+            >
+              {photos[2] ? (
+                <>
+                  <Image source={{ uri: photos[2] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                  <View style={{ position: 'absolute', bottom: 4, left: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 2, borderRadius: 6, alignItems: 'center' }}>
+                    <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>Photo 3</Text>
+                  </View>
+                </>
+              ) : (
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontSize: 22, color: C.accent }}>+</Text>
+                  <Text style={{ color: C.textMuted, fontSize: 9, fontWeight: '700' }}>Upload</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleChangePhotoIndex(2)} style={{ marginTop: 6, paddingVertical: 2 }}>
+              <Text style={{ color: C.textSoft, fontSize: 10, fontWeight: '800' }}>{photos[2] ? 'Replace' : 'Add'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
 
       {/* Edit Form */}
       <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
@@ -1731,38 +1922,40 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
         />
       </View>
 
-      {/* Cultural Roots */}
+      {/* Cultural Roots (Permanently Locked Country) */}
       <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
         <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 14 }}>
           COUNTRY & CULTURAL ROOTS
         </Text>
 
-        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>Country</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', height: 44 }} style={{ maxHeight: 44, marginBottom: 14 }}>
-          {COUNTRIES_LIST.map((c, i) => {
-            const active = selectedCountry.name === c.name;
-            return (
-              <TouchableOpacity
-                key={i}
-                onPress={() => setSelectedCountry(c)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 12,
-                  backgroundColor: active ? C.accent : 'rgba(255,255,255,0.06)',
-                  borderWidth: 1,
-                  borderColor: active ? C.accent : C.border,
-                  marginRight: 8
-                }}
-              >
-                <Text style={{ fontSize: 14, marginRight: 6 }}>{c.flag}</Text>
-                <Text style={{ color: active ? '#000' : '#FFF', fontWeight: '800', fontSize: 11 }}>{c.name}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {/* Permanently Locked Country Card */}
+        <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>Country of Origin & Roots</Text>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          borderRadius: 14,
+          marginBottom: 6
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ fontSize: 20, marginRight: 10 }}>{userProfile?.countryFlag || '🇬🇭'}</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>
+              {userProfile?.country || 'Ghana'}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,184,0,0.12)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,184,0,0.3)' }}>
+            <Text style={{ fontSize: 10, marginRight: 4 }}>🔒</Text>
+            <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800' }}>Permanent</Text>
+          </View>
+        </View>
+        <Text style={{ color: C.textMuted, fontSize: 10, marginBottom: 14, lineHeight: 14 }}>
+          Country is verified during registration and locked permanently for member security and anti-fraud verification.
+        </Text>
 
         <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Current Living City</Text>
         <TextInput
