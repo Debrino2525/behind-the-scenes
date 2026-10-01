@@ -25,7 +25,6 @@ import {
   Keyboard,
   PanResponder,
 } from 'react-native';
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 import { 
   appwriteLoginWithGoogleMobile, 
@@ -51,6 +50,8 @@ import Svg, { Path } from 'react-native-svg';
 import { verifyHumanFace } from './lib/faceVerification';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const TOP_INSET = Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight || 20);
+const BOTTOM_INSET = Platform.OS === 'ios' ? 24 : 10;
 
 // ──────────────── COLOR PALETTE ────────────────
 const C = {
@@ -80,7 +81,7 @@ const BG_IMAGES = {
   watermark: require('./assets/bg-bts-watermark.jpg'), // Behind The Scenes monogram
 };
 
-function DimmedAppBackground({ screen = 'discover', step = null }) {
+function DimmedAppBackground({ screen = 'discover', step = null, children = null, style = null }) {
   let activeImage = BG_IMAGES.sunset;
 
   if (step !== null) {
@@ -101,27 +102,44 @@ function DimmedAppBackground({ screen = 'discover', step = null }) {
     }
   }
 
-  return (
-    <View style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]} pointerEvents="none">
-      {/* 1. Underlying Dark Tint Base */}
-      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: '#07090E' }} />
+  if (children) {
+    return (
+      <View style={[{ flex: 1, backgroundColor: '#07090E' }, style]}>
+        <Image
+          source={activeImage}
+          style={[
+            StyleSheet.absoluteFillObject,
+            { width: '100%', height: '100%', resizeMode: 'cover', opacity: 0.12 }
+          ]}
+        />
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: 'rgba(7, 9, 14, 0.65)' }
+          ]}
+          pointerEvents="none"
+        />
+        {children}
+      </View>
+    );
+  }
 
-      {/* 2. Faint Dimmed Atmospheric Background Image */}
+  return (
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: '#07090E' }} />
       <Image
         source={activeImage}
         style={{
           width: '100%',
           height: '100%',
           resizeMode: 'cover',
-          opacity: 0.12, // Faint and dimmed as requested by GLOBITECH
+          opacity: 0.12,
         }}
       />
-
-      {/* 3. Soft Dark Vignette Overlay for perfect readability */}
       <View
         style={{
           ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'rgba(7, 9, 14, 0.70)',
+          backgroundColor: 'rgba(7, 9, 14, 0.65)',
         }}
       />
     </View>
@@ -1787,10 +1805,9 @@ function OnboardingScreen({ onComplete }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#07090E' }}>
-      <DimmedAppBackground step={step} />
+    <DimmedAppBackground step={step} style={{ paddingTop: TOP_INSET }}>
       {renderStepContent()}
-    </View>
+    </DimmedAppBackground>
   );
 }
 
@@ -2298,10 +2315,8 @@ function ChatScreen({ match, onClose }) {
 
   return (
     <Modal visible animationType="slide">
-      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
-        <DimmedAppBackground screen="matches" />
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <DimmedAppBackground screen="matches">
+        <KeyboardAvoidingView style={{ flex: 1, paddingTop: TOP_INSET }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           {/* Chat Header */}
           <View style={s.chatHeader}>
             <TouchableOpacity 
@@ -2598,9 +2613,8 @@ function ChatScreen({ match, onClose }) {
             )}
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
-  </Modal>
+      </DimmedAppBackground>
+    </Modal>
   );
 }
 
@@ -4021,9 +4035,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
 // ══════════════════════════════════════════════════
 //  MAIN APP
 // ══════════════════════════════════════════════════
-function AppInner() {
-  // ── Hooks must always be at the top, before any early returns ──
-  const insets = useSafeAreaInsets();
+export default function App() {
   const [userProfile, setUserProfile] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [tab, setTab] = useState('discover');
@@ -4031,6 +4043,7 @@ function AppInner() {
   const [matches, setMatches] = useState(INITIAL_MATCHES);
   const [btsProfile, setBtsProfile] = useState(null);
   const [chatMatch, setChatMatch] = useState(null);
+
   // Strict opposite-gender matching & age range filtering
   const userGender = userProfile?.gender || 'male';
   const minAge = parseInt(userProfile?.preferredMinAge, 10) || 18;
@@ -4066,11 +4079,12 @@ function AppInner() {
 
   // Restore authenticated session and profile on app start (instant local cache + Appwrite)
   useEffect(() => {
+    let mounted = true;
     async function restoreSession() {
       try {
         // 1. Instant local file load (0ms offline-first)
         const local = await loadLocalProfile();
-        if (local && local.name) {
+        if (mounted && local && local.name) {
           setUserProfile(local);
           setLoadingSession(false);
           return;
@@ -4080,7 +4094,7 @@ function AppInner() {
         const user = await appwriteGetCurrentUserMobile();
         if (user && user.$id) {
           const remote = await appwriteGetUserProfile(user.$id);
-          if (remote && remote.name) {
+          if (mounted && remote && remote.name) {
             setUserProfile(remote);
             await saveLocalProfile(remote);
           }
@@ -4088,10 +4102,20 @@ function AppInner() {
       } catch (err) {
         console.warn('[Session Restore Error]', err?.message);
       } finally {
-        setLoadingSession(false);
+        if (mounted) setLoadingSession(false);
       }
     }
     restoreSession();
+
+    // Safety timeout: Never stay stuck in loading screen longer than 2.5 seconds
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setLoadingSession(false);
+    }, 2500);
+
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   const handleLike = () => {
@@ -4119,19 +4143,10 @@ function AppInner() {
   const handlePass = () => setCurrentIdx(prev => prev + 1);
   const handleReport = (name) => Alert.alert('Report Submitted', `Your report about ${name} has been received. Our safety team will review within 24 hours.`);
 
-  // Safety net — if session restore hangs for any reason, exit loading state after 3s
-  useEffect(() => {
-    const safetyTimer = setTimeout(() => {
-      setLoadingSession(false);
-    }, 3000);
-    return () => clearTimeout(safetyTimer);
-  }, []);
-
   if (loadingSession) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
+      <DimmedAppBackground screen="discover">
         <StatusBar barStyle="light-content" />
-        <DimmedAppBackground screen="discover" />
         <View style={s.fullCenter}>
           <Image
             source={require('./assets/bts-official-logo.png')}
@@ -4141,7 +4156,7 @@ function AppInner() {
           <Text style={{ color: C.textMuted, fontSize: 11, letterSpacing: 2, marginBottom: 32 }}>REAL VIBES • AFRICA</Text>
           <ActivityIndicator color={C.accent} size="large" />
         </View>
-      </View>
+      </DimmedAppBackground>
     );
   }
 
@@ -4155,12 +4170,11 @@ function AppInner() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#07090E' }}>
+    <DimmedAppBackground screen={tab}>
       <StatusBar barStyle="light-content" />
-      <DimmedAppBackground screen={tab} />
 
       {/* Full height column with explicit top/bottom padding from insets */}
-      <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <View style={{ flex: 1, paddingTop: TOP_INSET, paddingBottom: BOTTOM_INSET }}>
 
         {/* Header */}
         <View style={s.header}>
@@ -4258,7 +4272,7 @@ function AppInner() {
         </View>
 
         {/* Floating Bottom Navigation Bar */}
-        <View style={s.bottomBar}>
+        <View style={[s.bottomBar, { bottom: BOTTOM_INSET + 8 }]}>
           <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('discover')}>
             <Text style={[s.bottomTabIcon, tab === 'discover' && { transform: [{ scale: 1.2 }] }]}>🔥</Text>
             <Text style={[s.bottomTabText, tab === 'discover' && s.bottomTabActive]}>Discover</Text>
@@ -4302,17 +4316,7 @@ function AppInner() {
       {chatMatch && (
         <ChatScreen match={chatMatch} onClose={() => setChatMatch(null)} />
       )}
-    </View>
-  );
-}
-
-// Outer wrapper that provides SafeAreaProvider context
-// (useSafeAreaInsets inside AppInner requires this parent)
-export default function App() {
-  return (
-    <SafeAreaProvider>
-      <AppInner />
-    </SafeAreaProvider>
+    </DimmedAppBackground>
   );
 }
 
