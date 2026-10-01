@@ -22,7 +22,7 @@ import {
   Animated,
   KeyboardAvoidingView,
 } from 'react-native';
-import { INITIAL_PROFILES, INITIAL_MATCHES } from './data/mockProfiles';
+import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -505,6 +505,100 @@ function ChatScreen({ match, onClose }) {
 }
 
 // ══════════════════════════════════════════════════
+//  DATE DROPS SCREEN (REAL DATES FEED)
+// ══════════════════════════════════════════════════
+function DateDropsScreen({ onPostDate }) {
+  const [drops, setDrops] = useState(INITIAL_DATE_DROPS);
+
+  const cheer = (id) => {
+    setDrops(prev => prev.map(d => d.id === id ? { ...d, cheersCount: d.cheersCount + 1 } : d));
+    Alert.alert('🥂 Cheers Sent!', 'You cheered on this date connection!');
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={s.screenHeader}>
+        <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>🥂 BTS Date Drops</Text>
+        <TouchableOpacity style={s.btnPrimarySm} onPress={onPostDate}>
+          <Text style={{ color: '#000', fontWeight: '900', fontSize: 11 }}>+ Drop Date</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={drops}
+        keyExtractor={(d, idx) => `${d.id}-${idx}`}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        renderItem={({ item }) => (
+          <View style={s.dateDropCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 12 }}>
+              <View>
+                <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>{item.couple}</Text>
+                <Text style={[s.bodyTiny, { color: C.accent }]}>{item.matchTag}</Text>
+              </View>
+              <Text style={[s.bodyTiny, { color: C.textMuted }]}>{item.timestamp}</Text>
+            </View>
+
+            <Image source={{ uri: item.photo }} style={{ width: '100%', height: 220 }} />
+
+            <View style={{ padding: 12 }}>
+              <View style={s.venuePill}>
+                <Text style={[s.bodyTiny, { color: '#CBD5E1', fontWeight: '700' }]}>📍 {item.venue}</Text>
+              </View>
+
+              <Text style={[s.bodySmall, { color: '#E2E8F0', marginTop: 8 }]}>"{item.caption}"</Text>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border }}>
+                <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '700' }]}>{item.vibeRating}</Text>
+                <TouchableOpacity style={s.cheerBtn} onPress={() => cheer(item.id)}>
+                  <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11 }}>🎉 {item.cheersCount} Cheers</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  LIKES YOU SCREEN
+// ══════════════════════════════════════════════════
+function LikesYouScreen({ onMatchBack }) {
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <View style={{ marginBottom: 16 }}>
+        <Text style={[s.heading, { color: C.text }]}>Interested In You</Text>
+        <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>Singles who swiped right on your profile</Text>
+      </View>
+
+      <FlatList
+        data={INITIAL_LIKES_YOU}
+        keyExtractor={(p, idx) => `${p.id}-${idx}`}
+        numColumns={2}
+        columnWrapperStyle={{ gap: 12 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        renderItem={({ item }) => (
+          <View style={s.likesCard}>
+            <Image source={{ uri: item.photo }} style={{ width: '100%', height: 150, borderRadius: 16 }} />
+            <View style={{ padding: 10 }}>
+              <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>{item.name}, {item.age}</Text>
+              <Text style={[s.bodyTiny, { color: C.textMuted }]}>{item.city}</Text>
+              <Text style={[s.bodyTiny, { color: C.accent, fontStyle: 'italic', marginTop: 4 }]} numberOfLines={2}>
+                "{item.note}"
+              </Text>
+              <TouchableOpacity style={[s.btnPrimary, { paddingVertical: 8, marginTop: 8 }]} onPress={() => onMatchBack(item)}>
+                <Text style={[s.btnPrimaryText, { fontSize: 11 }]}>♥ Match Back</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  MAIN APP
 // ══════════════════════════════════════════════════
 export default function App() {
@@ -584,6 +678,33 @@ export default function App() {
         />
       )}
 
+      {tab === 'date_drops' && (
+        <DateDropsScreen 
+          onPostDate={() => Alert.alert('Post Your Date Story', 'Upload your date selfie/food photo and tag the spot (e.g. Buka Restaurant Osu) to cheer the community!')}
+        />
+      )}
+
+      {tab === 'likes_you' && (
+        <LikesYouScreen 
+          onMatchBack={(p) => {
+            const newMatch = {
+              id: p.id,
+              name: p.name,
+              photo: p.photo,
+              lastMessage: "You matched back! Say hi!",
+              time: "Just now",
+              unread: true,
+              online: true,
+              hometown: p.hometown,
+              currentCity: p.city,
+              country: "Ghana"
+            };
+            setMatches(prev => [newMatch, ...prev.filter(m => m.id !== p.id)]);
+            setChatMatch(newMatch);
+          }}
+        />
+      )}
+
       {tab === 'matches' && (
         <MatchesScreen
           matches={matches}
@@ -591,6 +712,37 @@ export default function App() {
           onBack={() => setTab('discover')}
         />
       )}
+
+      {/* Floating Bottom Navigation Bar */}
+      <View style={s.bottomBar}>
+        <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('discover')}>
+          <Text style={[s.bottomTabIcon, tab === 'discover' && { transform: [{ scale: 1.2 }] }]}>🔥</Text>
+          <Text style={[s.bottomTabText, tab === 'discover' && s.bottomTabActive]}>Discover</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('date_drops')}>
+          <Text style={[s.bottomTabIcon, tab === 'date_drops' && { transform: [{ scale: 1.2 }] }]}>🥂</Text>
+          <Text style={[s.bottomTabText, tab === 'date_drops' && s.bottomTabActive]}>Date Drops</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('likes_you')}>
+          <Text style={[s.bottomTabIcon, tab === 'likes_you' && { transform: [{ scale: 1.2 }] }]}>👁</Text>
+          <Text style={[s.bottomTabText, tab === 'likes_you' && s.bottomTabActive]}>Likes You</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('matches')}>
+          <View>
+            <Text style={[s.bottomTabIcon, tab === 'matches' && { transform: [{ scale: 1.2 }] }]}>💬</Text>
+            {matches.some(m => m.unread) && <View style={s.bottomBadge} />}
+          </View>
+          <Text style={[s.bottomTabText, tab === 'matches' && s.bottomTabActive]}>Matches</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={s.bottomTabBtn} onPress={() => Alert.alert('Behind The Scenes Safety', '18+ Verified • Child Safety Standards Enforced • Account Deletion Available')}>
+          <Text style={s.bottomTabIcon}>🛡️</Text>
+          <Text style={s.bottomTabText}>Safety</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* BTS Reveal Modal */}
       <BtsModal
@@ -702,4 +854,21 @@ const s = StyleSheet.create({
   btsFullImg: { width: '100%', height: 260, resizeMode: 'cover' },
   btsLocBadge: { position: 'absolute', top: 300, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.7)', borderWidth: 1, borderColor: C.border },
   reactionChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(255,184,0,0.1)', borderWidth: 1, borderColor: 'rgba(255,184,0,0.3)' },
+
+  // Date Drops
+  dateDropCard: { backgroundColor: C.surface, borderRadius: 24, borderWidth: 1, borderColor: C.border, marginBottom: 16, overflow: 'hidden' },
+  venuePill: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderWidth: 1, borderColor: C.border },
+  cheerBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(255,184,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,184,0,0.3)' },
+  btnPrimarySm: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12, backgroundColor: C.accent },
+
+  // Likes You
+  likesCard: { flex: 1, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
+
+  // Bottom Navigation Bar
+  bottomBar: { position: 'absolute', bottom: 12, left: 16, right: 16, height: 60, borderRadius: 30, backgroundColor: 'rgba(15,18,26,0.95)', borderWidth: 1, borderColor: C.borderLight, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 12 },
+  bottomTabBtn: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  bottomTabIcon: { fontSize: 18 },
+  bottomTabText: { fontSize: 9, color: C.textMuted, marginTop: 2, fontWeight: '700' },
+  bottomTabActive: { color: C.accent, fontWeight: '900' },
+  bottomBadge: { position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: C.emerald },
 });

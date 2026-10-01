@@ -236,3 +236,60 @@ export const INITIAL_MATCHES = [
     country: "Mauritius"
   }
 ];
+
+export const INITIAL_DATE_DROPS = [
+  {
+    id: "drop-1",
+    couple: "Nana Ama & Kweku",
+    matchTag: "Matched on BTS • 3 weeks ago",
+    photo: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80",
+    venue: "Buka Restaurant, Osu (Accra)",
+    caption: "He promised authentic waakye with all the works if I agreed to meet in Osu... and charlie he delivered! 10/10 date vibes! 🇬🇭✨",
+    vibeRating: "⭐⭐⭐⭐⭐ Pure Chemistry",
+    likesCount: 142,
+    cheersCount: 38,
+    commentsCount: 19,
+    timestamp: "Yesterday at 9:45 PM"
+  },
+  {
+    id: "drop-2",
+    couple: "Priya & Yannick",
+    matchTag: "Matched on BTS • 1 month ago",
+    photo: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80",
+    venue: "Le Morne Beach Sunset, Mauritius",
+    caption: "First official date outside our research labs: Roti chaud roadside, acoustic guitar, and unreal sunset. He dances Sega! 🇲🇺🌊",
+    vibeRating: "⭐⭐⭐⭐⭐ Magical Energy",
+    likesCount: 218,
+    cheersCount: 64,
+    commentsCount: 27,
+    timestamp: "2 days ago"
+  }
+];
+
+export const INITIAL_LIKES_YOU = [
+  {
+    id: "like-1",
+    name: "Ama Pokua",
+    age: 26,
+    city: "Accra",
+    hometown: "Kumasi",
+    photo: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80",
+    time: "20m ago",
+    superLike: true,
+    btsUnlocked: true,
+    note: "Liked your Behind The Scenes kitchen video!"
+  },
+  {
+    id: "like-2",
+    name: "Farah Cherkaoui",
+    age: 28,
+    city: "Casablanca",
+    hometown: "Marrakech",
+    photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+    time: "2h ago",
+    superLike: false,
+    btsUnlocked: false,
+    note: "Liked your music playlist prompt"
+  }
+];
+
