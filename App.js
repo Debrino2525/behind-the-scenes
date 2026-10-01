@@ -4119,12 +4119,28 @@ function AppInner() {
   const handlePass = () => setCurrentIdx(prev => prev + 1);
   const handleReport = (name) => Alert.alert('Report Submitted', `Your report about ${name} has been received. Our safety team will review within 24 hours.`);
 
+  // Safety net — if session restore hangs for any reason, exit loading state after 3s
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      setLoadingSession(false);
+    }, 3000);
+    return () => clearTimeout(safetyTimer);
+  }, []);
+
   if (loadingSession) {
     return (
-      <View style={[s.fullCenter, { backgroundColor: C.bg }]}>
+      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
         <StatusBar barStyle="light-content" />
-        <Image source={require('./assets/bts-official-logo.png')} style={{ width: 100, height: 100, resizeMode: 'contain', marginBottom: 20 }} />
-        <ActivityIndicator color={C.accent} size="large" />
+        <DimmedAppBackground screen="discover" />
+        <View style={s.fullCenter}>
+          <Image
+            source={require('./assets/bts-official-logo.png')}
+            style={{ width: 110, height: 110, resizeMode: 'contain', marginBottom: 24 }}
+          />
+          <Text style={[s.brandTitleSm, { fontSize: 18, letterSpacing: 3, marginBottom: 6, color: C.accent }]}>BEHIND THE SCENES</Text>
+          <Text style={{ color: C.textMuted, fontSize: 11, letterSpacing: 2, marginBottom: 32 }}>REAL VIBES • AFRICA</Text>
+          <ActivityIndicator color={C.accent} size="large" />
+        </View>
       </View>
     );
   }
