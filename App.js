@@ -24,7 +24,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
-import { appwriteLoginWithGoogleMobile, appwriteGetCurrentUserMobile } from './lib/appwrite';
+import { 
+  appwriteLoginWithGoogleMobile, 
+  appwriteGetCurrentUserMobile,
+  appwriteSendEmailOtp,
+  appwriteVerifyEmailOtp,
+  appwriteRegisterEmailPassword,
+  appwriteLogoutMobile
+} from './lib/appwrite';
 import * as ImagePicker from 'expo-image-picker';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -119,6 +126,22 @@ function OnboardingScreen({ onComplete }) {
   const [isVerified, setIsVerified] = useState(false);
   const [loadingOAuth, setLoadingOAuth] = useState(false);
 
+  // Email OTP Authentication States
+  const [authSubStep, setAuthSubStep] = useState('input'); // 'input' | 'otp'
+  const [otpCode, setOtpCode] = useState('');
+  const [otpUserId, setOtpUserId] = useState('');
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // Countdown timer for code resend
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
   // Check for active Appwrite user
   useEffect(() => {
     async function checkExistingUser() {
@@ -138,6 +161,10 @@ function OnboardingScreen({ onComplete }) {
 
   const handleBack = () => {
     setError('');
+    if (step === 2 && authSubStep === 'otp') {
+      setAuthSubStep('input');
+      return;
+    }
     setStep((prev) => Math.max(1, prev - 1));
   };
 
@@ -145,6 +172,16 @@ function OnboardingScreen({ onComplete }) {
     try {
       setLoadingOAuth(true);
       setError('');
+
+      // If active session already exists, skip directly to Age Check
+      const existing = await appwriteGetCurrentUserMobile();
+      if (existing) {
+        if (existing.name) setFullName(existing.name);
+        if (existing.email) setEmail(existing.email);
+        setStep(3);
+        return;
+      }
+
       const user = await appwriteLoginWithGoogleMobile();
       if (user) {
         if (user.name) setFullName(user.name);
@@ -152,17 +189,28 @@ function OnboardingScreen({ onComplete }) {
         setStep(3); // Proceed to Age Check
       }
     } catch (err) {
+      // In case session conflict occurred, fetch the current active session
+      try {
+        const user = await appwriteGetCurrentUserMobile();
+        if (user) {
+          if (user.name) setFullName(user.name);
+          if (user.email) setEmail(user.email);
+          setStep(3);
+          return;
+        }
+      } catch (e) {}
+
       Alert.alert(
         'Google Authentication',
-        err?.message || 'Could not complete Google sign-in. You can also sign up securely with your email below.'
+        err?.message || 'Could not complete Google sign-in. You can sign up with email verification below.'
       );
     } finally {
       setLoadingOAuth(false);
     }
   };
 
-  // STRICT VALIDATION FOR STEP 2 (NO BYPASSING)
-  const handleEmailAuthNext = () => {
+  // SEND 6-DIGIT VERIFICATION CODE TO EMAIL
+  const handleSendOtp = async () => {
     const cleanName = fullName.trim();
     const cleanEmail = email.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -175,13 +223,87 @@ function OnboardingScreen({ onComplete }) {
       setError('Please enter a valid email address (e.g. name@domain.com).');
       return;
     }
-    if (!password || password.length < 8) {
-      setError('Password must be at least 8 characters long for security.');
+
+    setIsSendingCode(true);
+    setError('');
+
+    try {
+      const res = await appwriteSendEmailOtp(cleanEmail);
+      setOtpUserId(res.userId);
+      setAuthSubStep('otp');
+      setCountdown(45);
+      Alert.alert('Code Dispatched! ✉️', `A 6-digit verification code has been sent to ${cleanEmail}. Please check your inbox and spam folder.`);
+    } catch (err) {
+      console.warn('[Appwrite Send OTP]', err);
+      // If Appwrite rate limit or offline, offer fallback password registration
+      if (password && password.length >= 8) {
+        try {
+          await appwriteRegisterEmailPassword(cleanEmail, password, cleanName);
+          setStep(3);
+          return;
+        } catch (regErr) {
+          setError(regErr?.message || err?.message || 'Could not send code.');
+        }
+      } else {
+        setError(err?.message || 'Could not send verification code. Ensure your email is correct.');
+      }
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  // VERIFY 6-DIGIT EMAIL CODE
+  const handleVerifyOtp = async () => {
+    const cleanCode = otpCode.trim();
+    if (!cleanCode || cleanCode.length !== 6) {
+      setError('Please enter the full 6-digit code sent to your email.');
       return;
     }
 
+    setIsVerifyingCode(true);
     setError('');
-    setStep(3); // Advance to Age Check
+
+    try {
+      await appwriteVerifyEmailOtp(otpUserId, cleanCode);
+      setError('');
+      setStep(3); // Advance to Age Check
+    } catch (err) {
+      console.warn('[Appwrite Verify OTP]', err);
+      setError('Invalid or expired code. Please re-enter or tap Resend.');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  // FALLBACK EMAIL/PASSWORD DIRECT REGISTRATION
+  const handleDirectPasswordRegister = async () => {
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!cleanName || cleanName.length < 2) {
+      setError('Please enter your full legal name.');
+      return;
+    }
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!password || password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
+    setIsSendingCode(true);
+    setError('');
+    try {
+      await appwriteRegisterEmailPassword(cleanEmail, password, cleanName);
+      setStep(3);
+    } catch (err) {
+      setError(err?.message || 'Registration failed. Try email code verification.');
+    } finally {
+      setIsSendingCode(false);
+    }
   };
 
   const calculateAge = () => {
@@ -356,6 +478,85 @@ function OnboardingScreen({ onComplete }) {
   // STEP 2: ACCOUNT SECURITY & CREDENTIALS
   // ══════════════════════════════════════════════════
   if (step === 2) {
+    if (authSubStep === 'otp') {
+      return (
+        <View style={{ flex: 1, backgroundColor: C.bg }}>
+          <StepHeader currentStep={1} totalSteps={5} onBack={handleBack} />
+
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, flexGrow: 1 }}>
+            <View style={{ alignItems: 'center', marginVertical: 20 }}>
+              <View style={{ width: 68, height: 68, borderRadius: 22, backgroundColor: 'rgba(212,175,55,0.12)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
+                <Text style={{ fontSize: 32 }}>✉️</Text>
+              </View>
+              <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Enter 6-Digit Code</Text>
+              <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }]}>
+                We sent a temporary verification code to{'\n'}
+                <Text style={{ color: C.accent, fontWeight: '700' }}>{email}</Text>
+              </Text>
+              <Text style={{ color: C.textMuted, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+                (Please check both your Inbox and Spam / Junk folder)
+              </Text>
+            </View>
+
+            {/* ERROR ALERT BANNER */}
+            {error ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(224,54,56,0.15)', borderWidth: 1, borderColor: C.red, marginBottom: 16 }}>
+                <Text style={{ color: C.red, fontSize: 16, marginRight: 8 }}>⚠️</Text>
+                <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1 }}>{error}</Text>
+              </View>
+            ) : null}
+
+            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 8, textAlign: 'center' }}>
+              6-DIGIT VERIFICATION CODE
+            </Text>
+            <TextInput
+              style={[s.textInput, { width: '100%', fontSize: 28, fontWeight: '900', letterSpacing: 8, textAlign: 'center', paddingVertical: 14, marginBottom: 20, borderColor: error ? C.red : C.accent }]}
+              placeholder="••••••"
+              placeholderTextColor={C.textMuted}
+              keyboardType="number-pad"
+              maxLength={6}
+              value={otpCode}
+              onChangeText={(t) => { setOtpCode(t); setError(''); }}
+              autoFocus
+            />
+
+            <TouchableOpacity 
+              style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: 18, marginBottom: 14 }]} 
+              onPress={handleVerifyOtp}
+              disabled={isVerifyingCode}
+            >
+              {isVerifyingCode ? (
+                <ActivityIndicator color="#000" size="small" />
+              ) : (
+                <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Verify Code & Continue →</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Resend Code Section */}
+            <View style={{ alignItems: 'center', marginTop: 12 }}>
+              {countdown > 0 ? (
+                <Text style={{ color: C.textMuted, fontSize: 12, fontWeight: '600' }}>
+                  Resend code in <Text style={{ color: C.accent, fontWeight: '800' }}>{countdown}s</Text>
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={handleSendOtp} disabled={isSendingCode}>
+                  <Text style={{ color: C.accent, fontSize: 13, fontWeight: '800', textDecorationLine: 'underline' }}>
+                    {isSendingCode ? 'Sending...' : 'Resend 6-Digit Code'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={{ marginTop: 22 }} onPress={() => { setError(''); setAuthSubStep('input'); }}>
+                <Text style={{ color: C.textSoft, fontSize: 12, textDecorationLine: 'underline' }}>
+                  Wrong email address? Change email
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      );
+    }
+
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StepHeader currentStep={1} totalSteps={5} onBack={handleBack} />
@@ -433,7 +634,7 @@ function OnboardingScreen({ onComplete }) {
 
           <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Password (Minimum 8 Characters)</Text>
           <TextInput
-            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 24, borderColor: password.length < 8 && error ? C.red : C.border }]}
+            style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20, borderColor: password.length < 8 && error ? C.red : C.border }]}
             placeholder="••••••••••••"
             placeholderTextColor={C.textMuted}
             secureTextEntry
@@ -441,11 +642,28 @@ function OnboardingScreen({ onComplete }) {
             onChangeText={(t) => { setPassword(t); setError(''); }}
           />
 
+          {/* Primary Action: Send 6-Digit Code */}
           <TouchableOpacity 
-            style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
-            onPress={handleEmailAuthNext}
+            style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18, marginBottom: 12 }]} 
+            onPress={handleSendOtp}
+            disabled={isSendingCode}
           >
-            <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Age Check →</Text>
+            {isSendingCode ? (
+              <ActivityIndicator color="#000" size="small" />
+            ) : (
+              <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Send 6-Digit Verification Code →</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Alternative: Direct Password Sign-Up */}
+          <TouchableOpacity 
+            style={{ width: '100%', alignItems: 'center', paddingVertical: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border }}
+            onPress={handleDirectPasswordRegister}
+            disabled={isSendingCode}
+          >
+            <Text style={{ color: C.textSoft, fontWeight: '700', fontSize: 12 }}>
+              Or Register Instantly with Password
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
