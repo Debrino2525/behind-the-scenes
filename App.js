@@ -42,7 +42,13 @@ import {
 import {
   getProfilesFromDb,
   recordSwipeInDb,
+  getInboundLikesFromDb,
   getDateDropsFromDb,
+  insertDateDropInDb,
+  getMatchesFromDb,
+  createMatchInDb,
+  getMessagesFromDb,
+  sendMessageToDb,
   submitReportToDb
 } from './lib/supabase';
 import { 
@@ -3126,15 +3132,26 @@ function DateDropsScreen({ userProfile }) {
 // ══════════════════════════════════════════════════
 //  LIKES YOU SCREEN
 // ══════════════════════════════════════════════════
-function LikesYouScreen({ onMatchBack, userGender = 'male' }) {
+function LikesYouScreen({ onMatchBack, userGender = 'male', userId = null }) {
+  const [liveLikes, setLiveLikes] = useState([]);
+
+  useEffect(() => {
+    if (userId) {
+      getInboundLikesFromDb(userId).then(res => {
+        if (res && res.length > 0) setLiveLikes(res);
+      });
+    }
+  }, [userId]);
+
   const filteredLikes = useMemo(() => {
-    return INITIAL_LIKES_YOU.filter(item => {
+    const list = liveLikes.length > 0 ? liveLikes : INITIAL_LIKES_YOU;
+    return list.filter(item => {
       if (!item.gender) return true;
       if (userGender === 'male' && item.gender !== 'female') return false;
       if (userGender === 'female' && item.gender !== 'male') return false;
       return true;
     });
-  }, [userGender]);
+  }, [liveLikes, userGender]);
 
   return (
     <View style={{ flex: 1, padding: 16 }}>
@@ -4030,14 +4047,67 @@ export default function App() {
   const [matches, setMatches] = useState(INITIAL_MATCHES);
   const [btsProfile, setBtsProfile] = useState(null);
   const [chatMatch, setChatMatch] = useState(null);
+  const [dbProfiles, setDbProfiles] = useState(INITIAL_PROFILES);
+  const [blockedIds, setBlockedIds] = useState([]);
 
   // Strict opposite-gender matching & age range filtering
   const userGender = userProfile?.gender || 'male';
   const minAge = parseInt(userProfile?.preferredMinAge, 10) || 18;
   const maxAge = parseInt(userProfile?.preferredMaxAge, 10) || 55;
 
+  // Load profiles from Supabase DB on mount or when userProfile changes
+  useEffect(() => {
+    let active = true;
+    getProfilesFromDb().then(remoteProfiles => {
+      if (active && remoteProfiles && remoteProfiles.length > 0) {
+        setDbProfiles(prev => {
+          const map = new Map();
+          // First add remote profiles from Supabase
+          remoteProfiles.forEach(p => {
+            if (p.id) map.set(p.id, p);
+          });
+          // Preserve any local initial profile not in Supabase yet
+          prev.forEach(p => {
+            if (!map.has(p.id)) map.set(p.id, p);
+          });
+          return Array.from(map.values());
+        });
+      }
+    }).catch(err => {
+      console.warn('[GetProfilesDb Error]', err?.message);
+    });
+    return () => { active = false; };
+  }, [userProfile?.id]);
+
+  // Load user's active matches from Supabase DB
+  useEffect(() => {
+    if (!userProfile?.id) return;
+    let active = true;
+    getMatchesFromDb(userProfile.id).then(remoteMatches => {
+      if (active && remoteMatches && remoteMatches.length > 0) {
+        setMatches(prev => {
+          const map = new Map();
+          remoteMatches.forEach(m => {
+            if (m.id) map.set(m.id, m);
+          });
+          prev.forEach(m => {
+            if (!map.has(m.id)) map.set(m.id, m);
+          });
+          return Array.from(map.values());
+        });
+      }
+    }).catch(err => {
+      console.warn('[GetMatchesDb Error]', err?.message);
+    });
+    return () => { active = false; };
+  }, [userProfile?.id]);
+
   const profiles = useMemo(() => {
-    return INITIAL_PROFILES.filter(p => {
+    return dbProfiles.filter(p => {
+      // 0. Exclude self and blocked profiles
+      if (userProfile?.id && p.id === userProfile.id) return false;
+      if (blockedIds.includes(p.id)) return false;
+
       // 1. Strict Opposite Gender:
       // Male can NEVER match with Male.
       // Female can NEVER match with Female.
@@ -4051,18 +4121,19 @@ export default function App() {
       }
       return true;
     });
-  }, [userGender, minAge, maxAge]);
+  }, [dbProfiles, blockedIds, userProfile?.id, userGender, minAge, maxAge]);
 
   const currentProfile = profiles[currentIdx] || null;
 
   const activeMatches = useMemo(() => {
     return matches.filter(m => {
+      if (blockedIds.includes(m.id)) return false;
       if (!m.gender) return true;
       if (userGender === 'male' && m.gender !== 'female') return false;
       if (userGender === 'female' && m.gender !== 'male') return false;
       return true;
     });
-  }, [matches, userGender]);
+  }, [matches, blockedIds, userGender]);
 
   // Restore authenticated session and profile on app start (instant local cache + Supabase)
   useEffect(() => {
@@ -4105,28 +4176,34 @@ export default function App() {
     };
   }, []);
 
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!currentProfile) return;
-    recordSwipeInDb({
-      swiperId: userProfile?.id || userProfile?.email || 'current_user',
+    const currentUserId = userProfile?.id || userProfile?.email || 'current_user';
+    const isMutual = await recordSwipeInDb({
+      swiperId: currentUserId,
       targetId: currentProfile.id,
       isLike: true,
       isSuperLike: false
     });
+
+    if (isMutual && userProfile?.id) {
+      await createMatchInDb(userProfile.id, currentProfile.id);
+    }
+
     const newMatch = {
       id: currentProfile.id,
       name: currentProfile.name,
       gender: currentProfile.gender,
-      photo: currentProfile.mainPhotos[0],
-      photos: currentProfile.mainPhotos,
+      photo: currentProfile.mainPhotos?.[0] || currentProfile.photo,
+      photos: currentProfile.mainPhotos || [currentProfile.photo],
       voiceNote: currentProfile.voiceNote,
       lastMessage: "You both connected through Behind The Scenes!",
       time: "Just now",
       unread: true,
       online: true,
       hometown: currentProfile.homeTown,
-      currentCity: currentProfile.currentCity.split(' ')[0],
-      country: currentProfile.country
+      currentCity: currentProfile.currentCity ? currentProfile.currentCity.split(' ')[0] : 'Accra',
+      country: currentProfile.country || 'Ghana'
     };
     setMatches(prev => [newMatch, ...prev.filter(m => m.id !== currentProfile.id)]);
     Alert.alert('🎉 It\'s a Match!', `You and ${currentProfile.name} connected through BTS!`);
@@ -4146,6 +4223,10 @@ export default function App() {
   };
 
   const handleReport = (name) => {
+    const target = profiles.find(p => p.name === name);
+    if (target?.id) {
+      setBlockedIds(prev => [...prev, target.id]);
+    }
     submitReportToDb({
       reported_user_name: name,
       reason: 'Safety/Catfish report submitted via Mobile App',
@@ -4229,6 +4310,7 @@ export default function App() {
           {tab === 'likes_you' && (
             <LikesYouScreen
               userGender={userGender}
+              userId={userProfile?.id}
               onMatchBack={(p) => {
                 const newMatch = {
                   id: p.id,
