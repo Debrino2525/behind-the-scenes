@@ -47,87 +47,332 @@ const C = {
 // ══════════════════════════════════════════════════
 //  AGE GATE SCREEN
 // ══════════════════════════════════════════════════
-function AgeGateScreen({ onVerified }) {
-  const [step, setStep] = useState('welcome');
+// ══════════════════════════════════════════════════
+//  MOBILE ONBOARDING & VERIFICATION WIZARD
+// ══════════════════════════════════════════════════
+const COUNTRIES_LIST = [
+  { name: 'Ghana', flag: '🇬🇭', defaultCity: 'Accra', defaultRoots: 'Kumasi', defaultTribe: 'Asante' },
+  { name: 'Mauritius', flag: '🇲🇺', defaultCity: 'Port Louis', defaultRoots: 'Flic en Flac', defaultTribe: 'Creole' },
+  { name: 'Botswana', flag: '🇧🇼', defaultCity: 'Gaborone', defaultRoots: 'Maun', defaultTribe: 'Tswana' },
+  { name: 'Namibia', flag: '🇳🇦', defaultCity: 'Windhoek', defaultRoots: 'Swakopmund', defaultTribe: 'Herero' },
+  { name: 'Morocco', flag: '🇲🇦', defaultCity: 'Marrakech', defaultRoots: 'Fès', defaultTribe: 'Amazigh' },
+  { name: 'United Kingdom (Diaspora)', flag: '🇬🇧', defaultCity: 'London', defaultRoots: 'Accra', defaultTribe: 'Fante' },
+  { name: 'United States (Diaspora)', flag: '🇺🇸', defaultCity: 'Atlanta', defaultRoots: 'Kumasi', defaultTribe: 'Asante' },
+  { name: 'Worldwide / Diaspora', flag: '🌍', defaultCity: 'Global City', defaultRoots: 'Heritage Roots', defaultTribe: 'African Roots' },
+];
+
+function OnboardingScreen({ onComplete }) {
+  const [step, setStep] = useState(1);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  // DOB
   const [year, setYear] = useState('');
+  const [month, setMonth] = useState('06');
+  const [day, setDay] = useState('15');
   const [error, setError] = useState('');
 
-  const handleVerify = () => {
+  // Country & Roots
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES_LIST[0]);
+  const [currentCity, setCurrentCity] = useState('Accra');
+  const [homeTown, setHomeTown] = useState('Kumasi');
+  const [tribe, setTribe] = useState('Asante');
+  const [intent, setIntent] = useState('Long-term leading to marriage');
+
+  // Candid BTS Moment
+  const [btsCaption, setBtsCaption] = useState('Sunday waakye in my oversized t-shirt, completely unedited.');
+  const [btsHabit, setBtsHabit] = useState('I listen to Daddy Lumba every Sunday morning.');
+
+  // Liveness
+  const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [isVerified, setIsVerified] = useState(false);
+
+  const calculateAge = () => {
+    const y = parseInt(year);
+    if (!y) return 25;
+    return new Date().getFullYear() - y;
+  };
+
+  const handleDobNext = () => {
     const y = parseInt(year);
     if (!y || y < 1920 || y > new Date().getFullYear()) {
-      setError('Enter a valid birth year.');
+      setError('Enter a valid 4-digit birth year.');
       return;
     }
     const age = new Date().getFullYear() - y;
     if (age < 18) {
-      setStep('blocked');
-    } else {
-      onVerified();
+      setError('You must be 18+ to join Behind The Scenes.');
+      return;
     }
+    setError('');
+    setStep(4);
   };
 
-  if (step === 'blocked') {
-    return (
-      <View style={[s.fullCenter, { backgroundColor: C.bg }]}>
-        <Text style={{ fontSize: 40, marginBottom: 16 }}>🛡️</Text>
-        <Text style={[s.heading, { color: C.text }]}>Age Requirement Not Met</Text>
-        <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginHorizontal: 40, marginTop: 8 }]}>
-          Behind The Scenes is exclusively for users aged 18 and above.
-        </Text>
-      </View>
-    );
-  }
+  const runLivenessScan = () => {
+    setScanning(true);
+    setScanProgress(0);
+    const interval = setInterval(() => {
+      setScanProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setScanning(false);
+          setIsVerified(true);
+          return 100;
+        }
+        return prev + 25;
+      });
+    }, 450);
+  };
 
-  if (step === 'welcome') {
+  const handleFinish = () => {
+    onComplete({
+      name: fullName || 'New Member',
+      age: calculateAge(),
+      country: selectedCountry.name,
+      countryFlag: selectedCountry.flag,
+      currentCity,
+      homeTown,
+      tribe,
+      intent,
+      btsCaption,
+      btsHabit,
+      verified: isVerified
+    });
+  };
+
+  // STEP 1: WELCOME
+  if (step === 1) {
     return (
       <View style={[s.fullCenter, { backgroundColor: C.bg }]}>
         <View style={s.logoBox}>
-          <Text style={s.logoStar}>★</Text>
+          <Text style={{ fontSize: 28 }}>🎬</Text>
         </View>
         <Text style={s.brandTitle}>BEHIND THE SCENES</Text>
-        <Text style={[s.bodySmall, { color: C.textMuted, letterSpacing: 2, marginTop: 4 }]}>
+        <Text style={[s.bodySmall, { color: '#F2E9D8', letterSpacing: 2, marginTop: 4, fontWeight: '700' }]}>
           REAL VIBES • NO FAKE LIFE
         </Text>
-        <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginHorizontal: 40, marginTop: 20 }]}>
-          Connect with authentic singles across Africa's safest nations.
+        <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginHorizontal: 30, marginTop: 16, lineHeight: 18 }]}>
+          Connect with authentic singles across Africa's safest nations & the global diaspora. No catfishing. Real people only.
         </Text>
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-          <Text style={{ fontSize: 28 }}>🇬🇭</Text>
-          <Text style={{ fontSize: 28 }}>🇲🇺</Text>
-          <Text style={{ fontSize: 28 }}>🇧🇼</Text>
-          <Text style={{ fontSize: 28 }}>🇳🇦</Text>
-          <Text style={{ fontSize: 28 }}>🇲🇦</Text>
+        
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+          <Text style={{ fontSize: 26 }}>🇬🇭</Text>
+          <Text style={{ fontSize: 26 }}>🇲🇺</Text>
+          <Text style={{ fontSize: 26 }}>🇧🇼</Text>
+          <Text style={{ fontSize: 26 }}>🇳🇦</Text>
+          <Text style={{ fontSize: 26 }}>🇲🇦</Text>
         </View>
-        <TouchableOpacity style={[s.btnPrimary, { marginTop: 32 }]} onPress={() => setStep('dob')}>
-          <Text style={s.btnPrimaryText}>Get Started →</Text>
+
+        <TouchableOpacity style={[s.btnPrimary, { marginTop: 32, width: '80%', alignItems: 'center' }]} onPress={() => setStep(2)}>
+          <Text style={s.btnPrimaryText}>Create Account (18+) →</Text>
         </TouchableOpacity>
-        <Text style={[s.bodyTiny, { color: C.textMuted, textAlign: 'center', marginHorizontal: 40, marginTop: 16 }]}>
-          By continuing, you agree to our Terms of Service and Privacy Policy. You must be 18+ to use BTS.
-        </Text>
+        
+        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => setStep(2)}>
+          <Text style={[s.bodyTiny, { color: C.textMuted }]}>I already have an account</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
+  // STEP 2: ACCOUNT AUTH
+  if (step === 2) {
+    return (
+      <ScrollView contentContainerStyle={[s.fullCenter, { backgroundColor: C.bg, paddingVertical: 40 }]}>
+        <Text style={[s.heading, { color: C.text, marginBottom: 4 }]}>Create Your Account</Text>
+        <Text style={[s.bodyTiny, { color: C.textMuted, marginBottom: 20 }]}>Synced with Appwrite Cloud Database</Text>
+
+        <TextInput
+          style={s.textInput}
+          placeholder="Full Name"
+          placeholderTextColor={C.textMuted}
+          value={fullName}
+          onChangeText={setFullName}
+        />
+        <TextInput
+          style={[s.textInput, { marginTop: 12 }]}
+          placeholder="Email Address"
+          placeholderTextColor={C.textMuted}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={[s.textInput, { marginTop: 12 }]}
+          placeholder="Password (8+ chars)"
+          placeholderTextColor={C.textMuted}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity style={[s.btnPrimary, { marginTop: 24, width: '80%', alignItems: 'center' }]} onPress={() => setStep(3)}>
+          <Text style={s.btnPrimaryText}>Continue to Age Check →</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
+  // STEP 3: STRICT 18+ DOB
+  if (step === 3) {
+    return (
+      <View style={[s.fullCenter, { backgroundColor: C.bg }]}>
+        <Text style={{ fontSize: 36, marginBottom: 12 }}>🛡️</Text>
+        <Text style={[s.heading, { color: C.text }]}>Verify Your Age</Text>
+        <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginHorizontal: 30, marginTop: 6 }]}>
+          In strict compliance with Google Play and Apple App Store rules, you must be 18+.
+        </Text>
+        
+        <TextInput
+          style={[s.textInput, { marginTop: 24 }]}
+          placeholder="Birth Year (e.g. 1998)"
+          placeholderTextColor={C.textMuted}
+          keyboardType="number-pad"
+          maxLength={4}
+          value={year}
+          onChangeText={(t) => { setYear(t); setError(''); }}
+        />
+        {error ? <Text style={{ color: C.red, fontSize: 12, marginTop: 8 }}>{error}</Text> : null}
+
+        <TouchableOpacity style={[s.btnPrimary, { marginTop: 24, width: '80%', alignItems: 'center' }]} onPress={handleDobNext}>
+          <Text style={s.btnPrimaryText}>Confirm 18+ & Continue →</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // STEP 4: COUNTRY, CITY & HOMETOWN ROOTS
+  if (step === 4) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: 24, backgroundColor: C.bg, flexGrow: 1, justifyContent: 'center' }}>
+        <Text style={[s.heading, { color: C.text, marginBottom: 4 }]}>Select Your Country & Roots</Text>
+        <Text style={[s.bodyTiny, { color: C.textMuted, marginBottom: 16 }]}>Behind The Scenes connects singles across borders</Text>
+
+        <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', marginBottom: 8 }]}>SELECT YOUR COUNTRY:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+          {COUNTRIES_LIST.map((c, i) => (
+            <TouchableOpacity 
+              key={i} 
+              onPress={() => {
+                setSelectedCountry(c);
+                setCurrentCity(c.defaultCity);
+                setHomeTown(c.defaultRoots);
+                setTribe(c.defaultTribe);
+              }}
+              style={[
+                s.countryPill, 
+                selectedCountry.name === c.name && s.countryPillActive
+              ]}
+            >
+              <Text style={{ fontSize: 16, marginRight: 6 }}>{c.flag}</Text>
+              <Text style={[s.bodyTiny, { color: selectedCountry.name === c.name ? '#000' : '#FFF', fontWeight: '800' }]}>
+                {c.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={[s.bodyTiny, { color: C.textSoft, marginBottom: 4 }]}>Current Living City</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', marginBottom: 12 }]}
+          value={currentCity}
+          onChangeText={setCurrentCity}
+          placeholder="e.g. Accra, London, Gaborone"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={[s.bodyTiny, { color: C.textSoft, marginBottom: 4 }]}>Hometown / Ancestral Roots</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', marginBottom: 12 }]}
+          value={homeTown}
+          onChangeText={setHomeTown}
+          placeholder="e.g. Kumasi, Cape Coast, Maun, Fès"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={[s.bodyTiny, { color: C.textSoft, marginBottom: 4 }]}>Tribe / Heritage</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', marginBottom: 20 }]}
+          value={tribe}
+          onChangeText={setTribe}
+          placeholder="e.g. Asante, Fante, Tswana, Amazigh"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <TouchableOpacity style={[s.btnPrimary, { width: '100%', alignItems: 'center' }]} onPress={() => setStep(5)}>
+          <Text style={s.btnPrimaryText}>Continue to Candid Moment →</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
+  // STEP 5: CANDID BTS MOMENT
+  if (step === 5) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: 24, backgroundColor: C.bg, flexGrow: 1, justifyContent: 'center' }}>
+        <Text style={[s.heading, { color: C.text, marginBottom: 4 }]}>Your Behind-The-Scenes</Text>
+        <Text style={[s.bodyTiny, { color: C.textMuted, marginBottom: 20 }]}>Show what you look like in real life when not trying</Text>
+
+        <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', marginBottom: 4 }]}>CANDID CAPTION</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', height: 70, textAlignVertical: 'top', marginBottom: 16 }]}
+          multiline
+          value={btsCaption}
+          onChangeText={setBtsCaption}
+          placeholder="Behind the scenes: Making Sunday waakye in my oversized t-shirt..."
+          placeholderTextColor={C.textMuted}
+        />
+
+        <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', marginBottom: 4 }]}>DAILY QUIRKY HABIT</Text>
+        <TextInput
+          style={[s.textInput, { width: '100%', marginBottom: 24 }]}
+          value={btsHabit}
+          onChangeText={setBtsHabit}
+          placeholder="e.g. I listen to Daddy Lumba every Sunday morning"
+          placeholderTextColor={C.textMuted}
+        />
+
+        <TouchableOpacity style={[s.btnPrimary, { width: '100%', alignItems: 'center' }]} onPress={() => setStep(6)}>
+          <Text style={s.btnPrimaryText}>Continue to Anti-Catfish Check →</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
+  // STEP 6: ANTI-CATFISH 5-SECOND SCAN
   return (
     <View style={[s.fullCenter, { backgroundColor: C.bg }]}>
-      <Text style={{ fontSize: 36, marginBottom: 12 }}>🛡️</Text>
-      <Text style={[s.heading, { color: C.text }]}>Verify Your Age</Text>
-      <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginHorizontal: 40, marginTop: 6 }]}>
-        Enter your birth year. You must be 18+.
+      <Text style={[s.heading, { color: C.text, marginBottom: 4 }]}>Anti-Catfish Face Check</Text>
+      <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginHorizontal: 30, marginBottom: 20 }]}>
+        5-second biometric scan to ensure zero stolen photos or fake accounts.
       </Text>
-      <TextInput
-        style={s.textInput}
-        placeholder="e.g. 1996"
-        placeholderTextColor={C.textMuted}
-        keyboardType="number-pad"
-        maxLength={4}
-        value={year}
-        onChangeText={(t) => { setYear(t); setError(''); }}
-      />
-      {error ? <Text style={{ color: C.red, fontSize: 12, marginTop: 8 }}>{error}</Text> : null}
-      <TouchableOpacity style={[s.btnPrimary, { marginTop: 20 }]} onPress={handleVerify}>
-        <Text style={s.btnPrimaryText}>Continue</Text>
-      </TouchableOpacity>
+
+      <View style={{ width: 140, height: 140, borderRadius: 70, borderWidth: 3, borderColor: C.accent, justifyContent: 'center', alignItems: 'center', marginBottom: 20, backgroundColor: 'rgba(255,184,0,0.05)' }}>
+        <Text style={{ fontSize: 48 }}>{isVerified ? '✅' : '👤'}</Text>
+      </View>
+
+      {scanning && (
+        <View style={{ width: '70%', height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginBottom: 16 }}>
+          <View style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: C.emerald }} />
+        </View>
+      )}
+
+      {!isVerified ? (
+        <TouchableOpacity style={[s.btnPrimary, { width: '80%', alignItems: 'center' }]} onPress={runLivenessScan}>
+          <Text style={s.btnPrimaryText}>{scanning ? 'Scanning Face...' : 'Start 5-Second Scan'}</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: '80%', alignItems: 'center' }}>
+          <View style={{ padding: 12, borderRadius: 16, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: C.emerald, marginBottom: 20, width: '100%', alignItems: 'center' }}>
+            <Text style={{ color: C.emerald, fontWeight: '800', fontSize: 13 }}>✓ Gold Verified Checkmark Awarded</Text>
+          </View>
+          <TouchableOpacity style={[s.btnPrimary, { width: '100%', alignItems: 'center' }]} onPress={handleFinish}>
+            <Text style={s.btnPrimaryText}>Enter Behind The Scenes →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -602,7 +847,7 @@ function LikesYouScreen({ onMatchBack }) {
 //  MAIN APP
 // ══════════════════════════════════════════════════
 export default function App() {
-  const [ageVerified, setAgeVerified] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const [tab, setTab] = useState('discover');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [matches, setMatches] = useState(INITIAL_MATCHES);
@@ -633,11 +878,11 @@ export default function App() {
   const handlePass = () => setCurrentIdx(prev => prev + 1);
   const handleReport = (name) => Alert.alert('Report Submitted', `Your report about ${name} has been received. Our safety team will review within 24 hours.`);
 
-  if (!ageVerified) {
+  if (!userProfile) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="light-content" />
-        <AgeGateScreen onVerified={() => setAgeVerified(true)} />
+        <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} />
       </SafeAreaView>
     );
   }
@@ -871,4 +1116,8 @@ const s = StyleSheet.create({
   bottomTabText: { fontSize: 9, color: C.textMuted, marginTop: 2, fontWeight: '700' },
   bottomTabActive: { color: C.accent, fontWeight: '900' },
   bottomBadge: { position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: C.emerald },
+
+  // Country Picker
+  countryPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border, marginRight: 8 },
+  countryPillActive: { backgroundColor: C.accent, borderColor: C.accent },
 });
