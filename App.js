@@ -78,77 +78,17 @@ const C = {
 };
 
 // ══════════════════════════════════════════════════
-//  FAINT DIMMED ATMOSPHERIC APP BACKGROUND
+//  CLEAN SOLID APP BACKGROUND CONTAINER
 // ══════════════════════════════════════════════════
-const BG_IMAGES = {
-  embrace: require('./assets/bg-couple-embrace.png'), // B&W couple embrace with rings
-  sunset: require('./assets/bg-sunset-hands.png'),     // Sunset pinky holding silhouette
-  watermark: require('./assets/bg-bts-watermark.jpg'), // Behind The Scenes monogram
-};
-
-function DimmedAppBackground({ screen = 'discover', step = null, children = null, style = null }) {
-  let activeImage = BG_IMAGES.sunset;
-
-  if (step !== null) {
-    if (step === 1 || step === 5) {
-      activeImage = BG_IMAGES.watermark;
-    } else if (step === 2 || step === 3 || step === 4 || step === 6) {
-      activeImage = BG_IMAGES.embrace;
-    } else {
-      activeImage = BG_IMAGES.sunset;
-    }
-  } else {
-    if (screen === 'discover' || screen === 'date_drops') {
-      activeImage = BG_IMAGES.sunset;
-    } else if (screen === 'profile' || screen === 'likes_you') {
-      activeImage = BG_IMAGES.embrace;
-    } else {
-      activeImage = BG_IMAGES.watermark;
-    }
-  }
-
+function DimmedAppBackground({ children = null, style = null }) {
   if (children) {
     return (
       <View style={[{ flex: 1, width: '100%', height: '100%', backgroundColor: '#07090E' }, style]}>
-        <Image
-          source={activeImage}
-          style={[
-            StyleSheet.absoluteFillObject,
-            { width: '100%', height: '100%', resizeMode: 'cover', opacity: 0.12 }
-          ]}
-        />
-        <View
-          style={[
-            StyleSheet.absoluteFillObject,
-            { width: '100%', height: '100%', backgroundColor: 'rgba(7, 9, 14, 0.65)' }
-          ]}
-          pointerEvents="none"
-        />
         {children}
       </View>
     );
   }
-
-  return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: '#07090E' }} />
-      <Image
-        source={activeImage}
-        style={{
-          width: '100%',
-          height: '100%',
-          resizeMode: 'cover',
-          opacity: 0.12,
-        }}
-      />
-      <View
-        style={{
-          ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'rgba(7, 9, 14, 0.65)',
-        }}
-      />
-    </View>
-  );
+  return <View style={[{ flex: 1, backgroundColor: '#07090E' }, style]} />;
 }
 
 // ══════════════════════════════════════════════════
