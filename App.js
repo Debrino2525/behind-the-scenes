@@ -4022,6 +4022,8 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
 //  MAIN APP
 // ══════════════════════════════════════════════════
 function AppInner() {
+  // ── Hooks must always be at the top, before any early returns ──
+  const insets = useSafeAreaInsets();
   const [userProfile, setUserProfile] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [tab, setTab] = useState('discover');
@@ -4135,9 +4137,6 @@ function AppInner() {
       </View>
     );
   }
-
-  // Safe area insets — avoids SafeAreaView collapse bug in Expo Go SDK 57
-  const insets = useSafeAreaInsets();
 
   return (
     <View style={{ flex: 1, backgroundColor: '#07090E' }}>
