@@ -150,6 +150,12 @@ function OnboardingScreen({ onComplete }) {
   const [year, setYear] = useState('');
   const [error, setError] = useState('');
 
+  // Gender & Match Preferences (Strict Heterosexual Matchmaking)
+  const [gender, setGender] = useState('male'); // 'male' | 'female'
+  const [interestedInGender, setInterestedInGender] = useState('female'); // automatically inverted: male -> female, female -> male
+  const [preferredMinAge, setPreferredMinAge] = useState('21');
+  const [preferredMaxAge, setPreferredMaxAge] = useState('35');
+
   // Country & Roots
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES_LIST[0]);
   const [currentCity, setCurrentCity] = useState('Accra');
@@ -630,7 +636,11 @@ function OnboardingScreen({ onComplete }) {
       voiceNoteUrl: onboardingVoiceUri || null,
       voiceNoteDuration: onboardingVoiceDuration || '0:14',
       voiceNoteTitle: 'My Real Voice Intro',
-      voiceNoteTranscript: btsCaption || 'Unedited voice note from Behind The Scenes'
+      voiceNoteTranscript: btsCaption || 'Unedited voice note from Behind The Scenes',
+      gender,
+      interestedInGender: gender === 'male' ? 'female' : 'male',
+      preferredMinAge: parseInt(preferredMinAge, 10) || 18,
+      preferredMaxAge: parseInt(preferredMaxAge, 10) || 45
     };
 
     // 1. Persist locally to device storage immediately
@@ -753,7 +763,7 @@ function OnboardingScreen({ onComplete }) {
     if (authSubStep === 'otp') {
       return (
         <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
-          <StepHeader currentStep={1} totalSteps={5} onBack={handleBack} />
+          <StepHeader currentStep={1} totalSteps={6} onBack={handleBack} />
 
           <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <ScrollView 
@@ -848,7 +858,7 @@ function OnboardingScreen({ onComplete }) {
 
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
-        <StepHeader currentStep={1} totalSteps={5} onBack={handleBack} />
+        <StepHeader currentStep={1} totalSteps={6} onBack={handleBack} />
         
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView 
@@ -1033,7 +1043,7 @@ function OnboardingScreen({ onComplete }) {
     const calculatedAge = calculateAge();
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
-        <StepHeader currentStep={2} totalSteps={5} onBack={handleBack} />
+        <StepHeader currentStep={2} totalSteps={6} onBack={handleBack} />
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <KeyboardAvoidingView 
@@ -1100,12 +1110,223 @@ function OnboardingScreen({ onComplete }) {
   }
 
   // ══════════════════════════════════════════════════
-  // STEP 4: COUNTRY, CITY & HOMETOWN ROOTS
+  // STEP 4: GENDER & HETEROSEXUAL MATCH PREFERENCES
   // ══════════════════════════════════════════════════
   if (step === 4) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
-        <StepHeader currentStep={3} totalSteps={5} onBack={handleBack} />
+        <StepHeader currentStep={3} totalSteps={6} onBack={handleBack} />
+
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView 
+            contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>Gender & Match Preferences</Text>
+            <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 20 }]}>
+              BTS connects genuine singles with strict opposite-gender matching
+            </Text>
+
+            {/* 1. I AM A: (GENDER SELECTION) */}
+            <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
+              I AM A (YOUR GENDER)
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setGender('male');
+                  setInterestedInGender('female');
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 18,
+                  borderRadius: 18,
+                  backgroundColor: gender === 'male' ? 'rgba(255,184,0,0.15)' : '#12151e',
+                  borderWidth: 1.5,
+                  borderColor: gender === 'male' ? C.accent : C.border,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 32, marginBottom: 6 }}>👨</Text>
+                <Text style={{ color: gender === 'male' ? C.accent : '#FFF', fontWeight: '900', fontSize: 15 }}>
+                  Man / Male
+                </Text>
+                {gender === 'male' && (
+                  <View style={{ marginTop: 6, backgroundColor: C.accent, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                    <Text style={{ color: '#000', fontSize: 9, fontWeight: '900' }}>SELECTED</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setGender('female');
+                  setInterestedInGender('male');
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 18,
+                  borderRadius: 18,
+                  backgroundColor: gender === 'female' ? 'rgba(255,184,0,0.15)' : '#12151e',
+                  borderWidth: 1.5,
+                  borderColor: gender === 'female' ? C.accent : C.border,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 32, marginBottom: 6 }}>👩</Text>
+                <Text style={{ color: gender === 'female' ? C.accent : '#FFF', fontWeight: '900', fontSize: 15 }}>
+                  Woman / Female
+                </Text>
+                {gender === 'female' && (
+                  <View style={{ marginTop: 6, backgroundColor: C.accent, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                    <Text style={{ color: '#000', fontSize: 9, fontWeight: '900' }}>SELECTED</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* 2. STRICT OPPOSITE-GENDER MATCHING POLICY */}
+            <View style={{
+              backgroundColor: '#0D111A',
+              borderRadius: 18,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: 'rgba(255,184,0,0.3)',
+              marginBottom: 22
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Text style={{ fontSize: 16 }}>🔒</Text>
+                <Text style={{ color: C.accent, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>
+                  STRICT OPPOSITE-GENDER MATCHING
+                </Text>
+              </View>
+              <Text style={{ color: C.textSoft, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
+                Under BTS security & community rules, male profiles cannot match with other males, and female profiles cannot match with females. Matching is strictly opposite-gender.
+              </Text>
+              <View style={{
+                backgroundColor: 'rgba(16,185,129,0.12)',
+                padding: 12,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: C.emerald,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <Text style={{ color: C.emerald, fontSize: 16 }}>✓</Text>
+                <Text style={{ color: C.emerald, fontSize: 12, fontWeight: '800', flex: 1 }}>
+                  Looking to match with: {gender === 'male' ? 'Women 👩' : 'Men 👨'} exclusively
+                </Text>
+              </View>
+            </View>
+
+            {/* 3. AGE RANGE PREFERENCE */}
+            <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 8 }}>
+              AGE RANGE YOU'RE INTERESTED IN
+            </Text>
+            <Text style={{ color: C.textSoft, fontSize: 11, marginBottom: 12 }}>
+              Only singles within your chosen age window will appear in your discovery stack.
+            </Text>
+
+            {/* Age Quick Presets */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {[
+                { min: '18', max: '25', label: '18 - 25' },
+                { min: '21', max: '30', label: '21 - 30' },
+                { min: '24', max: '35', label: '24 - 35' },
+                { min: '28', max: '42', label: '28 - 42' },
+                { min: '30', max: '55', label: '30 - 55+' },
+              ].map((p, idx) => {
+                const isSelected = preferredMinAge === p.min && preferredMaxAge === p.max;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => {
+                      setPreferredMinAge(p.min);
+                      setPreferredMaxAge(p.max);
+                    }}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 12,
+                      backgroundColor: isSelected ? C.accent : 'rgba(255,255,255,0.06)',
+                      borderWidth: 1,
+                      borderColor: isSelected ? C.accent : C.border
+                    }}
+                  >
+                    <Text style={{ color: isSelected ? '#000' : '#FFF', fontSize: 12, fontWeight: '800' }}>
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Custom Min / Max Inputs */}
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 26, alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>MIN AGE (18+)</Text>
+                <TextInput
+                  style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 16, fontWeight: '800' }]}
+                  value={preferredMinAge}
+                  onChangeText={setPreferredMinAge}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  placeholder="18"
+                  placeholderTextColor={C.textMuted}
+                />
+              </View>
+
+              <Text style={{ color: C.accent, fontWeight: '900', fontSize: 16, marginTop: 16 }}>TO</Text>
+
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>MAX AGE</Text>
+                <TextInput
+                  style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 16, fontWeight: '800' }]}
+                  value={preferredMaxAge}
+                  onChangeText={setPreferredMaxAge}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  placeholder="35"
+                  placeholderTextColor={C.textMuted}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
+              onPress={() => {
+                Keyboard.dismiss();
+                const min = parseInt(preferredMinAge, 10);
+                const max = parseInt(preferredMaxAge, 10);
+                if (!min || min < 18) {
+                  Alert.alert('Invalid Age', 'Minimum preferred age must be 18+.');
+                  return;
+                }
+                if (!max || max < min) {
+                  Alert.alert('Invalid Age', 'Maximum age must be greater than or equal to minimum age.');
+                  return;
+                }
+                setStep(5);
+              }}
+            >
+              <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Country & Roots →</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </View>
+    );
+  }
+
+  // ══════════════════════════════════════════════════
+  // STEP 5: COUNTRY, CITY & HOMETOWN ROOTS
+  // ══════════════════════════════════════════════════
+  if (step === 5) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
+        <StepHeader currentStep={4} totalSteps={6} onBack={handleBack} />
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView 
@@ -1195,7 +1416,7 @@ function OnboardingScreen({ onComplete }) {
               style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
               onPress={() => {
                 Keyboard.dismiss();
-                setStep(5);
+                setStep(6);
               }}
             >
               <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Candid Moment →</Text>
@@ -1207,12 +1428,12 @@ function OnboardingScreen({ onComplete }) {
   }
 
   // ══════════════════════════════════════════════════
-  // STEP 5: CANDID BTS MOMENT
+  // STEP 6: CANDID BTS MOMENT & VOICE NOTE INTRO
   // ══════════════════════════════════════════════════
-  if (step === 5) {
+  if (step === 6) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
-        <StepHeader currentStep={4} totalSteps={5} onBack={handleBack} />
+        <StepHeader currentStep={5} totalSteps={6} onBack={handleBack} />
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView 
@@ -1379,7 +1600,7 @@ function OnboardingScreen({ onComplete }) {
               style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
               onPress={() => {
                 Keyboard.dismiss();
-                setStep(6);
+                setStep(7);
               }}
             >
               <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Anti-Catfish Check →</Text>
@@ -1391,11 +1612,11 @@ function OnboardingScreen({ onComplete }) {
   }
 
   // ══════════════════════════════════════════════════
-  // STEP 6: ANTI-CATFISH FACE CHECK (REAL CAMERA)
+  // STEP 7: ANTI-CATFISH FACE CHECK (REAL CAMERA)
   // ══════════════════════════════════════════════════
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StepHeader currentStep={5} totalSteps={5} onBack={handleBack} />
+      <StepHeader currentStep={6} totalSteps={6} onBack={handleBack} />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center' }}>
         <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Anti-Catfish Face Check</Text>
@@ -1512,6 +1733,52 @@ function OnboardingScreen({ onComplete }) {
 function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const cardSoundRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (cardSoundRef.current) {
+        cardSoundRef.current.unloadAsync().catch(() => {});
+      }
+    };
+  }, [profile?.id]);
+
+  const toggleCardAudio = async () => {
+    try {
+      if (audioPlaying) {
+        if (cardSoundRef.current) {
+          await cardSoundRef.current.pauseAsync();
+        }
+        setAudioPlaying(false);
+        return;
+      }
+
+      if (cardSoundRef.current) {
+        await cardSoundRef.current.unloadAsync();
+      }
+
+      const audioUri = profile?.voiceNote?.uri || profile?.voiceNoteUrl || profile?.voiceNote?.url;
+      if (audioUri) {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUri },
+          { shouldPlay: true }
+        );
+        cardSoundRef.current = sound;
+        setAudioPlaying(true);
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setAudioPlaying(false);
+          }
+        });
+      } else {
+        setAudioPlaying(true);
+        setTimeout(() => setAudioPlaying(false), 2500);
+      }
+    } catch (err) {
+      console.warn('Card audio play error:', err);
+      setAudioPlaying(false);
+    }
+  };
 
   if (!profile) {
     return (
@@ -1591,7 +1858,7 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
           </View>
           <TouchableOpacity
             style={s.playBtn}
-            onPress={() => setAudioPlaying(!audioPlaying)}
+            onPress={toggleCardAudio}
           >
             <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>
               {audioPlaying ? '⏸' : '▶'}
@@ -2040,6 +2307,45 @@ function ChatScreen({ match, onClose }) {
                     </View>
                   ))}
                 </ScrollView>
+                {/* Match Voice Note Intro Player */}
+                {match.voiceNote && (
+                  <View style={{
+                    backgroundColor: '#0D111A',
+                    borderRadius: 16,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,184,0,0.3)',
+                    marginTop: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11 }}>
+                        🎙️ {match.voiceNote.title || 'Voice Note Intro'}
+                      </Text>
+                      <Text style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>
+                        {match.voiceNote.duration || '0:14'} • {activePlayingId === 'match_intro' ? 'Playing now...' : 'Listen to speaking voice'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleTogglePlayVoiceMessage('match_intro', match.voiceNote.uri || match.voiceNoteUrl)}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: C.accent,
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Text style={{ color: '#000', fontSize: 14, fontWeight: '900' }}>
+                        {activePlayingId === 'match_intro' ? '⏸' : '▶'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
                 <Text style={{ color: C.textMuted, fontSize: 11, textAlign: 'center', marginTop: 10 }}>
                   Swipe to view all 3 photos • Connected on BTS
                 </Text>
@@ -2749,16 +3055,27 @@ function DateDropsScreen({ userProfile }) {
 // ══════════════════════════════════════════════════
 //  LIKES YOU SCREEN
 // ══════════════════════════════════════════════════
-function LikesYouScreen({ onMatchBack }) {
+function LikesYouScreen({ onMatchBack, userGender = 'male' }) {
+  const filteredLikes = useMemo(() => {
+    return INITIAL_LIKES_YOU.filter(item => {
+      if (!item.gender) return true;
+      if (userGender === 'male' && item.gender !== 'female') return false;
+      if (userGender === 'female' && item.gender !== 'male') return false;
+      return true;
+    });
+  }, [userGender]);
+
   return (
     <View style={{ flex: 1, padding: 16 }}>
       <View style={{ marginBottom: 16 }}>
         <Text style={[s.heading, { color: C.text }]}>Interested In You</Text>
-        <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>Singles who swiped right on your profile</Text>
+        <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>
+          {userGender === 'male' ? 'Women' : 'Men'} who swiped right on your profile
+        </Text>
       </View>
 
       <FlatList
-        data={INITIAL_LIKES_YOU}
+        data={filteredLikes}
         keyExtractor={(p, idx) => `${p.id}-${idx}`}
         numColumns={2}
         columnWrapperStyle={{ gap: 12 }}
@@ -2796,6 +3113,11 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
   const [intent, setIntent] = useState(userProfile?.intent || 'Long-term leading to marriage');
   const [btsCaption, setBtsCaption] = useState(userProfile?.btsCaption || 'Sunday waakye in my oversized t-shirt, completely unedited.');
   const [btsHabit, setBtsHabit] = useState(userProfile?.btsHabit || 'I listen to Daddy Lumba every Sunday morning.');
+  
+  // Gender & Dating Preferences
+  const [gender, setGender] = useState(userProfile?.gender || 'male');
+  const [preferredMinAge, setPreferredMinAge] = useState(String(userProfile?.preferredMinAge || '21'));
+  const [preferredMaxAge, setPreferredMaxAge] = useState(String(userProfile?.preferredMaxAge || '35'));
   
   // 3-Picture Array (Slot 0 is main profile picture, Slots 1 and 2 for connected matches)
   const initialPhotos = Array.isArray(userProfile?.photos) && userProfile.photos.length > 0
@@ -3013,6 +3335,10 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
       intent,
       btsCaption: btsCaption.trim(),
       btsHabit: btsHabit.trim(),
+      gender,
+      interestedInGender: gender === 'male' ? 'female' : 'male',
+      preferredMinAge: parseInt(preferredMinAge, 10) || 18,
+      preferredMaxAge: parseInt(preferredMaxAge, 10) || 45,
       photo: photos[0],
       photos,
       country: userProfile?.country || 'Ghana',
@@ -3208,6 +3534,86 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
             <TouchableOpacity onPress={() => handleChangePhotoIndex(2)} style={{ marginTop: 6, paddingVertical: 2 }}>
               <Text style={{ color: C.textSoft, fontSize: 10, fontWeight: '800' }}>{photos[2] ? 'Replace' : 'Add'}</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* ───────────────────────────────────────────── */}
+      {/* GENDER & HETEROSEXUAL MATCH PREFERENCES        */}
+      {/* ───────────────────────────────────────────── */}
+      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1 }}>
+            GENDER & DATING PREFERENCES 🔒
+          </Text>
+          <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+            <Text style={{ color: C.emerald, fontSize: 10, fontWeight: '800' }}>Strict Heterosexual Policy</Text>
+          </View>
+        </View>
+
+        <Text style={{ color: C.textSoft, fontSize: 11, lineHeight: 16, marginBottom: 14 }}>
+          BTS strictly matches men with women and women with men. Male profiles never match with males; female profiles never match with females.
+        </Text>
+
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+          <View style={{
+            flex: 1,
+            backgroundColor: '#0D111A',
+            padding: 12,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: C.border,
+            alignItems: 'center'
+          }}>
+            <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>YOUR GENDER</Text>
+            <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '900' }}>
+              {gender === 'female' ? '👩 Woman / Female' : '👨 Man / Male'}
+            </Text>
+          </View>
+
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(255,184,0,0.08)',
+            padding: 12,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: 'rgba(255,184,0,0.3)',
+            alignItems: 'center'
+          }}>
+            <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800', marginBottom: 4 }}>MATCHING WITH</Text>
+            <Text style={{ color: C.accent, fontSize: 14, fontWeight: '900' }}>
+              {gender === 'female' ? '👨 Men Only' : '👩 Women Only'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Preferred Age Range */}
+        <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 6 }}>
+          INTERESTED AGE RANGE (DISCOVERY FILTER):
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 15, fontWeight: '800' }]}
+              value={preferredMinAge}
+              onChangeText={setPreferredMinAge}
+              keyboardType="number-pad"
+              maxLength={2}
+              placeholder="18"
+              placeholderTextColor={C.textMuted}
+            />
+          </View>
+          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 14 }}>TO</Text>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 15, fontWeight: '800' }]}
+              value={preferredMaxAge}
+              onChangeText={setPreferredMaxAge}
+              keyboardType="number-pad"
+              maxLength={2}
+              placeholder="35"
+              placeholderTextColor={C.textMuted}
+            />
           </View>
         </View>
       </View>
@@ -3553,8 +3959,38 @@ export default function App() {
   const [matches, setMatches] = useState(INITIAL_MATCHES);
   const [btsProfile, setBtsProfile] = useState(null);
   const [chatMatch, setChatMatch] = useState(null);
-  const profiles = INITIAL_PROFILES;
+  // Strict opposite-gender matching & age range filtering
+  const userGender = userProfile?.gender || 'male';
+  const minAge = parseInt(userProfile?.preferredMinAge, 10) || 18;
+  const maxAge = parseInt(userProfile?.preferredMaxAge, 10) || 55;
+
+  const profiles = useMemo(() => {
+    return INITIAL_PROFILES.filter(p => {
+      // 1. Strict Opposite Gender:
+      // Male can NEVER match with Male.
+      // Female can NEVER match with Female.
+      const matchGender = p.gender || 'female';
+      if (userGender === 'male' && matchGender !== 'female') return false;
+      if (userGender === 'female' && matchGender !== 'male') return false;
+
+      // 2. Age Range
+      if (p.age && (p.age < minAge || p.age > maxAge)) {
+        return false;
+      }
+      return true;
+    });
+  }, [userGender, minAge, maxAge]);
+
   const currentProfile = profiles[currentIdx] || null;
+
+  const activeMatches = useMemo(() => {
+    return matches.filter(m => {
+      if (!m.gender) return true;
+      if (userGender === 'male' && m.gender !== 'female') return false;
+      if (userGender === 'female' && m.gender !== 'male') return false;
+      return true;
+    });
+  }, [matches, userGender]);
 
   // Restore authenticated session and profile on app start (instant local cache + Appwrite)
   useEffect(() => {
@@ -3591,7 +4027,10 @@ export default function App() {
     const newMatch = {
       id: currentProfile.id,
       name: currentProfile.name,
+      gender: currentProfile.gender,
       photo: currentProfile.mainPhotos[0],
+      photos: currentProfile.mainPhotos,
+      voiceNote: currentProfile.voiceNote,
       lastMessage: "You both connected through Behind The Scenes!",
       time: "Just now",
       unread: true,
@@ -3643,7 +4082,7 @@ export default function App() {
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity style={s.headerBtn} onPress={() => setTab('matches')}>
             <Text style={{ fontSize: 16 }}>💬</Text>
-            {matches.some(m => m.unread) && <View style={s.headerBadge} />}
+            {activeMatches.some(m => m.unread) && <View style={s.headerBadge} />}
           </TouchableOpacity>
           <TouchableOpacity style={s.headerBtn} onPress={() => Alert.alert('Safety Center', 'Community Guidelines, Privacy Policy, Terms of Service, and Account Deletion are available here.', [{ text: 'OK' }])}>
             <Text style={{ fontSize: 16 }}>🛡️</Text>
@@ -3671,10 +4110,12 @@ export default function App() {
 
       {tab === 'likes_you' && (
         <LikesYouScreen 
+          userGender={userGender}
           onMatchBack={(p) => {
             const newMatch = {
               id: p.id,
               name: p.name,
+              gender: p.gender,
               photo: p.photo,
               lastMessage: "You matched back! Say hi!",
               time: "Just now",
@@ -3692,7 +4133,7 @@ export default function App() {
 
       {tab === 'matches' && (
         <MatchesScreen
-          matches={matches}
+          matches={activeMatches}
           onSelectMatch={(m) => setChatMatch(m)}
           onBack={() => setTab('discover')}
         />
