@@ -2,6 +2,7 @@
   "expo": {
     "name": "Behind The Scenes",
     "slug": "behind-the-scenes-dating-app",
+    "scheme": "btsapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -35,6 +36,9 @@
         "projectId": "b846f31e-3423-458b-9249-3e113c00a41f"
       }
     },
-    "owner": "behind-the-scenes"
+    "owner": "behind-the-scenes",
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

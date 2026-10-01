@@ -3,7 +3,7 @@
 // platform: React Native (Expo Go)
 // target: iOS & Android via Expo Go
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -21,8 +21,10 @@ import {
   Platform,
   Animated,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
+import { appwriteLoginWithGoogleMobile, appwriteGetCurrentUserMobile } from './lib/appwrite';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -88,6 +90,43 @@ function OnboardingScreen({ onComplete }) {
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [isVerified, setIsVerified] = useState(false);
+  const [loadingOAuth, setLoadingOAuth] = useState(false);
+
+  // Check for active Appwrite user
+  useEffect(() => {
+    async function checkExistingUser() {
+      try {
+        const user = await appwriteGetCurrentUserMobile();
+        if (user) {
+          if (user.name) setFullName(user.name);
+          if (user.email) setEmail(user.email);
+          setStep((prev) => (prev <= 2 ? 3 : prev));
+        }
+      } catch (e) {
+        // Not signed in
+      }
+    }
+    checkExistingUser();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoadingOAuth(true);
+      const user = await appwriteLoginWithGoogleMobile();
+      if (user) {
+        if (user.name) setFullName(user.name);
+        if (user.email) setEmail(user.email);
+        setStep(3); // Proceed to Age Check
+      }
+    } catch (err) {
+      Alert.alert(
+        'Google Authentication',
+        err?.message || 'Please check that Google OAuth credentials are configured in your Appwrite Console.'
+      );
+    } finally {
+      setLoadingOAuth(false);
+    }
+  };
 
   const calculateAge = () => {
     const y = parseInt(year);
@@ -165,8 +204,36 @@ function OnboardingScreen({ onComplete }) {
           <Text style={{ fontSize: 26 }}>🇲🇦</Text>
         </View>
 
-        <TouchableOpacity style={[s.btnPrimary, { marginTop: 32, width: '80%', alignItems: 'center' }]} onPress={() => setStep(2)}>
-          <Text style={s.btnPrimaryText}>Create Account (18+) →</Text>
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#FFFFFF',
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            borderRadius: 16,
+            width: '85%',
+            marginTop: 24,
+            elevation: 3
+          }}
+          onPress={handleGoogleSignIn}
+          disabled={loadingOAuth}
+        >
+          {loadingOAuth ? (
+            <ActivityIndicator color="#111" size="small" />
+          ) : (
+            <>
+              <Text style={{ fontSize: 16, marginRight: 8 }}>🌐</Text>
+              <Text style={{ color: '#1A1E2D', fontWeight: '800', fontSize: 14 }}>
+                Continue with Google
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.btnPrimary, { marginTop: 12, width: '85%', alignItems: 'center' }]} onPress={() => setStep(2)}>
+          <Text style={s.btnPrimaryText}>Sign Up with Email (18+) →</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={{ marginTop: 16 }} onPress={() => setStep(2)}>
@@ -181,7 +248,41 @@ function OnboardingScreen({ onComplete }) {
     return (
       <ScrollView contentContainerStyle={[s.fullCenter, { backgroundColor: C.bg, paddingVertical: 40 }]}>
         <Text style={[s.heading, { color: C.text, marginBottom: 4 }]}>Create Your Account</Text>
-        <Text style={[s.bodyTiny, { color: C.textMuted, marginBottom: 20 }]}>Synced with Appwrite Cloud Database</Text>
+        <Text style={[s.bodyTiny, { color: C.textMuted, marginBottom: 16 }]}>Synced with Appwrite Cloud Database</Text>
+
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#FFFFFF',
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            borderRadius: 16,
+            width: '85%',
+            marginBottom: 12,
+            elevation: 3
+          }}
+          onPress={handleGoogleSignIn}
+          disabled={loadingOAuth}
+        >
+          {loadingOAuth ? (
+            <ActivityIndicator color="#111" size="small" />
+          ) : (
+            <>
+              <Text style={{ fontSize: 16, marginRight: 8 }}>🌐</Text>
+              <Text style={{ color: '#1A1E2D', fontWeight: '800', fontSize: 14 }}>
+                Continue with Google
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', width: '85%', marginVertical: 10 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
+          <Text style={{ color: C.textMuted, fontSize: 11, marginHorizontal: 10, fontWeight: '700' }}>OR WITH EMAIL</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
+        </View>
 
         <TextInput
           style={s.textInput}
@@ -208,7 +309,7 @@ function OnboardingScreen({ onComplete }) {
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={[s.btnPrimary, { marginTop: 24, width: '80%', alignItems: 'center' }]} onPress={() => setStep(3)}>
+        <TouchableOpacity style={[s.btnPrimary, { marginTop: 24, width: '85%', alignItems: 'center' }]} onPress={() => setStep(3)}>
           <Text style={s.btnPrimaryText}>Continue to Age Check →</Text>
         </TouchableOpacity>
       </ScrollView>
