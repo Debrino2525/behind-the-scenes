@@ -1829,18 +1829,38 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
     );
   }
 
-  const nextPhoto = () => setPhotoIdx((photoIdx + 1) % profile.mainPhotos.length);
+  const photosList = Array.isArray(profile.mainPhotos) && profile.mainPhotos.length > 0
+    ? profile.mainPhotos
+    : (Array.isArray(profile.photos) && profile.photos.length > 0 
+        ? profile.photos 
+        : [profile.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80']);
+
+  const nextPhoto = () => setPhotoIdx((photoIdx + 1) % photosList.length);
+  const currentPhoto = photosList[photoIdx] || photosList[0];
+  const bts = profile.behindTheScenes || {
+    caption: profile.bts_caption || 'Behind the scenes: living candidly.',
+    thumbnail: currentPhoto,
+    locationTag: profile.currentCity || 'Accra',
+    realLifeHabit: 'Good music and great vibes.'
+  };
+  const voice = profile.voiceNote || {
+    duration: '0:15',
+    title: 'Voice Note',
+    transcript: 'Authentic connection only on Behind The Scenes.'
+  };
+  const prompts = Array.isArray(profile.culturalPrompts) ? profile.culturalPrompts : [];
+  const langs = Array.isArray(profile.languages) ? profile.languages.join(', ') : (profile.languages || 'English');
 
   return (
     <ScrollView style={{ flex: 1, width: '100%' }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
       {/* Photo */}
       <TouchableOpacity activeOpacity={0.95} onPress={nextPhoto}>
         <View style={s.photoContainer}>
-          <Image source={{ uri: profile.mainPhotos[photoIdx] }} style={s.mainPhoto} />
+          <Image source={{ uri: currentPhoto }} style={s.mainPhoto} />
           
           {/* Photo dots */}
           <View style={s.photoDots}>
-            {profile.mainPhotos.map((_, i) => (
+            {photosList.map((_, i) => (
               <View key={i} style={[s.dot, i === photoIdx && s.dotActive]} />
             ))}
           </View>
@@ -1848,10 +1868,10 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
           {/* Country + Tribe badges */}
           <View style={s.badgeRow}>
             <View style={s.badgeDark}>
-              <Text style={s.badgeText}>{profile.countryFlag} {profile.country}</Text>
+              <Text style={s.badgeText}>{profile.countryFlag || '🇬🇭'} {profile.country || 'Ghana'}</Text>
             </View>
             <View style={s.badgeGold}>
-              <Text style={[s.badgeText, { color: C.accent }]}>🇬🇭 {profile.tribe}</Text>
+              <Text style={[s.badgeText, { color: C.accent }]}>{profile.tribe || 'Heritage'}</Text>
             </View>
           </View>
 
@@ -1866,16 +1886,16 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
           {/* Name overlay */}
           <View style={s.nameOverlay}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={s.nameText}>{profile.name}, {profile.age}</Text>
-              {profile.verified && <Text style={{ fontSize: 16 }}>✅</Text>}
+              <Text style={s.nameText}>{profile.name || profile.full_name}, {profile.age || 25}</Text>
+              {(profile.verified || profile.liveness_verified) && <Text style={{ fontSize: 16 }}>✅</Text>}
             </View>
-            <Text style={[s.bodySmall, { color: '#E2E8F0', fontWeight: '600' }]}>{profile.occupation}</Text>
+            <Text style={[s.bodySmall, { color: '#E2E8F0', fontWeight: '600' }]}>{profile.occupation || 'Creative Professional'}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
               <View style={s.locPill}>
-                <Text style={s.locText}>📍 {profile.currentCity}</Text>
+                <Text style={s.locText}>📍 {profile.currentCity || profile.current_city || 'Accra'}</Text>
               </View>
               <View style={s.locPill}>
-                <Text style={s.locText}>🧭 {profile.homeTown}</Text>
+                <Text style={s.locText}>🧭 {profile.homeTown || profile.home_town || 'Kumasi'}</Text>
               </View>
             </View>
           </View>
@@ -1887,10 +1907,10 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
         <View style={s.voiceBox}>
           <View style={{ flex: 1 }}>
             <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase' }]}>
-              🎙 {profile.voiceNote.title}
+              🎙 {voice.title || 'Voice Note'}
             </Text>
             <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>
-              {profile.voiceNote.duration} • Voice Note
+              {voice.duration || '0:15'} • Voice Note
             </Text>
           </View>
           <TouchableOpacity
@@ -1902,20 +1922,22 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
             </Text>
           </TouchableOpacity>
         </View>
-        <Text style={[s.bodySmall, { color: C.textSoft, fontStyle: 'italic', marginTop: 8 }]}>
-          "{profile.voiceNote.transcript}"
-        </Text>
+        {voice.transcript ? (
+          <Text style={[s.bodySmall, { color: C.textSoft, fontStyle: 'italic', marginTop: 8 }]}>
+            "{voice.transcript}"
+          </Text>
+        ) : null}
       </View>
 
       {/* BTS Teaser */}
       <TouchableOpacity style={s.btsTeaser} onPress={() => onBts(profile)}>
-        <Image source={{ uri: profile.behindTheScenes.thumbnail }} style={s.btsTeaserImg} blurRadius={3} />
+        <Image source={{ uri: bts.thumbnail || currentPhoto }} style={s.btsTeaserImg} blurRadius={3} />
         <View style={{ flex: 1 }}>
           <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase' }]}>
             ✨ Behind The Scenes
           </Text>
           <Text style={[s.bodySmall, { color: '#E2E8F0', marginTop: 2 }]} numberOfLines={2}>
-            {profile.behindTheScenes.caption}
+            {bts.caption || 'Candid moment'}
           </Text>
           <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>
             Tap to unlock candid
@@ -1925,7 +1947,7 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
       </TouchableOpacity>
 
       {/* Cultural Prompts */}
-      {profile.culturalPrompts.map((cp, i) => (
+      {prompts.map((cp, i) => (
         <View key={i} style={s.promptBox}>
           <Text style={[s.bodyTiny, { color: C.textMuted, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }]}>
             {cp.question}
@@ -1938,8 +1960,8 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
 
       {/* Tags */}
       <View style={[s.section, { flexDirection: 'row', flexWrap: 'wrap', gap: 6 }]}>
-        <View style={s.tag}><Text style={s.tagText}>🎯 {profile.intent}</Text></View>
-        <View style={s.tag}><Text style={s.tagText}>🗣 {profile.languages.join(', ')}</Text></View>
+        <View style={s.tag}><Text style={s.tagText}>🎯 {profile.intent || 'Serious relationship'}</Text></View>
+        <View style={s.tag}><Text style={s.tagText}>🗣 {langs}</Text></View>
       </View>
 
       {/* Report */}
@@ -1971,7 +1993,12 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
 // ══════════════════════════════════════════════════
 function BtsModal({ profile, visible, onClose, onLike }) {
   if (!profile) return null;
-  const bts = profile.behindTheScenes;
+  const bts = profile.behindTheScenes || {
+    caption: profile.bts_caption || 'Behind the scenes: living candidly.',
+    thumbnail: profile.photos?.[0] || profile.photo || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=900&q=80',
+    locationTag: profile.currentCity || profile.current_city || 'Accra',
+    realLifeHabit: profile.bts_habit || 'Good music and great vibes.'
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -1984,7 +2011,7 @@ function BtsModal({ profile, visible, onClose, onLike }) {
           <View style={s.modalHeader}>
             <View style={s.btsTag}><Text style={{ color: '#000', fontWeight: '900', fontSize: 11 }}>BTS</Text></View>
             <View>
-              <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>{profile.name}'s Behind The Scenes</Text>
+              <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>{profile.name || profile.full_name}'s Behind The Scenes</Text>
               <Text style={[s.bodyTiny, { color: C.textMuted }]}>Unfiltered, no posture, real life</Text>
             </View>
           </View>
