@@ -27,7 +27,24 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS push_token TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE;
 
--- 4. Enable Supabase Realtime for instant messaging and match notifications
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.matches;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.swipes;
+-- 4. Enable Supabase Realtime safely (handles already-added tables gracefully)
+DO $$
+BEGIN
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+    EXCEPTION WHEN duplicate_object THEN
+        RAISE NOTICE 'Table messages is already in supabase_realtime publication';
+    END;
+
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.matches;
+    EXCEPTION WHEN duplicate_object THEN
+        RAISE NOTICE 'Table matches is already in supabase_realtime publication';
+    END;
+
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.swipes;
+    EXCEPTION WHEN duplicate_object THEN
+        RAISE NOTICE 'Table swipes is already in supabase_realtime publication';
+    END;
+END $$;
