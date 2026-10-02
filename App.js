@@ -41,6 +41,7 @@ import {
 } from './lib/supabaseAuth';
 import {
   getProfilesFromDb,
+  getDiscoveryFeedFromDb,
   recordSwipeInDb,
   getInboundLikesFromDb,
   getDateDropsFromDb,
@@ -4082,18 +4083,25 @@ export default function App() {
   const minAge = parseInt(userProfile?.preferredMinAge, 10) || 18;
   const maxAge = parseInt(userProfile?.preferredMaxAge, 10) || 55;
 
-  // Load profiles from Supabase DB on mount or when userProfile changes
+  // Load candidate cards using Tinder-style Discovery Feed RPC
   useEffect(() => {
     let active = true;
-    getProfilesFromDb().then(remoteProfiles => {
+    const targetGender = userGender === 'male' ? 'female' : 'male';
+    getDiscoveryFeedFromDb({
+      userId: userProfile?.id,
+      targetGender,
+      minAge,
+      maxAge,
+      limit: 30
+    }).then(remoteProfiles => {
       if (active && remoteProfiles && remoteProfiles.length > 0) {
         setDbProfiles(prev => {
           const map = new Map();
-          // First add remote profiles from Supabase
+          // First add remote candidates
           remoteProfiles.forEach(p => {
             if (p.id) map.set(p.id, p);
           });
-          // Preserve any local initial profile not in Supabase yet
+          // Merge with initial dataset if needed
           prev.forEach(p => {
             if (!map.has(p.id)) map.set(p.id, p);
           });
@@ -4101,10 +4109,10 @@ export default function App() {
         });
       }
     }).catch(err => {
-      console.warn('[GetProfilesDb Error]', err?.message);
+      console.warn('[DiscoveryFeed Error]', err?.message);
     });
     return () => { active = false; };
-  }, [userProfile?.id]);
+  }, [userProfile?.id, userGender, minAge, maxAge]);
 
   // Load user's active matches from Supabase DB
   useEffect(() => {
