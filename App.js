@@ -96,75 +96,55 @@ const THEME_IMAGES = [
   require('./assets/theme-bg-3.webp'),
 ];
 
-function DimmedAppBackground({ children = null, style = null }) {
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [nextIdx, setNextIdx] = useState(1);
-  const crossFade = useRef(new Animated.Value(0)).current;
+function DimmedAppBackground({ activeIndex = 0, children = null, style = null }) {
+  const anim0 = useRef(new Animated.Value(1)).current;
+  const anim1 = useRef(new Animated.Value(0)).current;
+  const anim2 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const incoming = (currentIdx + 1) % THEME_IMAGES.length;
-      setNextIdx(incoming);
-
-      Animated.timing(crossFade, {
-        toValue: 1,
-        duration: 1800,
+    Animated.parallel([
+      Animated.timing(anim0, {
+        toValue: activeIndex === 0 ? 0.38 : 0,
+        duration: 800,
         useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) {
-          setCurrentIdx(incoming);
-          crossFade.setValue(0);
-        }
-      });
-    }, 20000); // Cross-fades smoothly every 20 seconds
-
-    return () => clearInterval(interval);
-  }, [currentIdx]);
+      }),
+      Animated.timing(anim1, {
+        toValue: activeIndex === 1 ? 0.38 : 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(anim2, {
+        toValue: activeIndex === 2 ? 0.38 : 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [activeIndex]);
 
   return (
     <View style={[{ flex: 1, width: '100%', height: '100%', backgroundColor: '#07090E' }, style]}>
-      {/* Base Layer Theme Image */}
+      {/* Theme 1: BTS Minimalist Brand */}
       <Animated.Image
-        source={THEME_IMAGES[currentIdx]}
-        style={[
-          StyleSheet.absoluteFillObject,
-          {
-            width: '100%',
-            height: '100%',
-            opacity: crossFade.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.36, 0.0],
-            }),
-          },
-        ]}
+        source={THEME_IMAGES[0]}
+        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', opacity: anim0 }]}
         resizeMode="cover"
       />
-
-      {/* Next Cross-fading Theme Image */}
+      {/* Theme 2: Couple in Rain */}
       <Animated.Image
-        source={THEME_IMAGES[nextIdx]}
-        style={[
-          StyleSheet.absoluteFillObject,
-          {
-            width: '100%',
-            height: '100%',
-            opacity: crossFade.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.0, 0.36],
-            }),
-          },
-        ]}
+        source={THEME_IMAGES[1]}
+        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', opacity: anim1 }]}
+        resizeMode="cover"
+      />
+      {/* Theme 3: Cinematic Dip Kiss */}
+      <Animated.Image
+        source={THEME_IMAGES[2]}
+        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', opacity: anim2 }]}
         resizeMode="cover"
       />
 
       {/* Luxury Obsidian Ambient Darkening Veil for Readability & Contrast */}
       <View
-        style={[
-          StyleSheet.absoluteFillObject,
-          {
-            backgroundColor: 'rgba(7, 9, 14, 0.70)',
-          },
-        ]}
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(7, 9, 14, 0.70)' }]}
         pointerEvents="none"
       />
 
@@ -652,8 +632,13 @@ const COUNTRIES_LIST = [
   { name: 'Worldwide / Diaspora', flag: '🌍', defaultCity: 'Global City', defaultRoots: 'Heritage Roots', defaultTribe: 'African Roots' },
 ];
 
-function OnboardingScreen({ onComplete }) {
+function OnboardingScreen({ onComplete, onStepChange }) {
   const [step, setStep] = useState(1);
+
+  useEffect(() => {
+    onStepChange?.();
+  }, [step]);
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -2272,9 +2257,9 @@ function OnboardingScreen({ onComplete }) {
   };
 
   return (
-    <DimmedAppBackground step={step} style={{ paddingTop: TOP_INSET }}>
+    <View style={{ flex: 1, backgroundColor: 'transparent', paddingTop: TOP_INSET }}>
       {renderStepContent()}
-    </DimmedAppBackground>
+    </View>
   );
 }
 
@@ -4769,6 +4754,17 @@ export default function App() {
   const [celebrationMatch, setCelebrationMatch] = useState(null);
   const [dbProfiles, setDbProfiles] = useState(INITIAL_PROFILES);
   const [blockedIds, setBlockedIds] = useState([]);
+  const [themeIdx, setThemeIdx] = useState(0);
+
+  // Rotate theme automatically every 10 seconds (managed once globally at the root)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setThemeIdx((prev) => (prev + 1) % 3);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const nextTheme = () => setThemeIdx((prev) => (prev + 1) % 3);
 
   // Strict opposite-gender matching & age range filtering
   const userGender = userProfile?.gender || 'male';
@@ -4964,10 +4960,11 @@ export default function App() {
     Alert.alert('Report Submitted', `Your report about ${name} has been received. Our safety team will review within 24 hours.`);
   };
 
-  if (loadingSession) {
-    return (
-      <DimmedAppBackground screen="discover">
-        <StatusBar barStyle="light-content" />
+  return (
+    <DimmedAppBackground activeIndex={themeIdx}>
+      <StatusBar barStyle="light-content" />
+
+      {loadingSession ? (
         <View style={s.fullCenter}>
           <Image
             source={require('./assets/bts-official-logo.png')}
@@ -4977,25 +4974,11 @@ export default function App() {
           <Text style={{ color: C.textMuted, fontSize: 11, letterSpacing: 2, marginBottom: 32 }}>REAL VIBES • AFRICA</Text>
           <ActivityIndicator color={C.accent} size="large" />
         </View>
-      </DimmedAppBackground>
-    );
-  }
-
-  if (!userProfile) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
-        <StatusBar barStyle="light-content" />
-        <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} />
-      </View>
-    );
-  }
-
-  return (
-    <DimmedAppBackground screen={tab}>
-      <StatusBar barStyle="light-content" />
-
-      {/* Full height column with explicit top/bottom padding from insets */}
-      <View style={{ flex: 1, width: '100%', height: '100%', paddingTop: TOP_INSET, paddingBottom: BOTTOM_INSET }}>
+      ) : !userProfile ? (
+        <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} onStepChange={nextTheme} />
+      ) : (
+        /* Full height column with explicit top/bottom padding from insets */
+        <View style={{ flex: 1, width: '100%', height: '100%', paddingTop: TOP_INSET, paddingBottom: BOTTOM_INSET }}>
 
         {/* Header */}
         <View style={s.header}>
@@ -5126,6 +5109,7 @@ export default function App() {
         </View>
 
       </View>
+      )}
 
       {/* BTS Reveal Modal */}
       <BtsModal
