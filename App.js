@@ -24,9 +24,11 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   PanResponder,
+  Vibration,
 } from 'react-native';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 import { 
+  supabase,
   supabaseLoginWithEmail,
   supabaseLoginWithGoogleMobile,
   supabaseSignUpWithEmail,
@@ -97,6 +99,259 @@ function DimmedAppBackground({ children = null, style = null }) {
     );
   }
   return <View style={[{ flex: 1, backgroundColor: '#07090E' }, style]} />;
+}
+
+// ══════════════════════════════════════════════════
+//  1. HAPTIC FEEDBACK & TACTILE MICRO-INTERACTIONS
+// ══════════════════════════════════════════════════
+const triggerHaptic = (type = 'light') => {
+  try {
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      if (type === 'light') Vibration.vibrate(15);
+      else if (type === 'medium') Vibration.vibrate(35);
+      else if (type === 'heavy') Vibration.vibrate(60);
+      else if (type === 'success') Vibration.vibrate([0, 30, 40, 40]);
+      else if (type === 'match') Vibration.vibrate([0, 40, 40, 60, 40, 80]);
+    }
+  } catch (_) {}
+};
+
+// ══════════════════════════════════════════════════
+//  2. DYNAMIC LIVE AUDIO WAVEFORM VISUALIZER
+// ══════════════════════════════════════════════════
+function WaveformVisualizer({ isPlaying = false, isRecording = false, barCount = 12, color = C.accent, height = 20 }) {
+  const animatedValues = useRef([...Array(barCount)].map(() => new Animated.Value(0.2))).current;
+
+  useEffect(() => {
+    let animations = [];
+    if (isPlaying || isRecording) {
+      animations = animatedValues.map((anim, i) => {
+        const duration = 260 + (i % 4) * 70;
+        return Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, {
+              toValue: Math.min(1, 0.35 + Math.random() * 0.65),
+              duration,
+              useNativeDriver: false,
+            }),
+            Animated.timing(anim, {
+              toValue: 0.15 + (i % 3) * 0.1,
+              duration,
+              useNativeDriver: false,
+            }),
+          ])
+        );
+      });
+      animations.forEach(a => a.start());
+    } else {
+      animatedValues.forEach((anim, i) => {
+        Animated.timing(anim, {
+          toValue: 0.2 + (i % 4) * 0.08,
+          duration: 180,
+          useNativeDriver: false,
+        }).start();
+      });
+    }
+
+    return () => {
+      animations.forEach(a => a.stop());
+    };
+  }, [isPlaying, isRecording]);
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', height, gap: 3 }}>
+      {animatedValues.map((anim, idx) => (
+        <Animated.View
+          key={idx}
+          style={{
+            width: 3,
+            height: anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [4, height],
+            }),
+            borderRadius: 2,
+            backgroundColor: color,
+            opacity: isPlaying || isRecording ? 0.95 : 0.45,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  3. INSTAGRAM / TINDER STORY PHOTO BAR
+// ══════════════════════════════════════════════════
+function StoryPhotoBar({ count = 1, activeIndex = 0 }) {
+  if (count <= 1) return null;
+  return (
+    <View style={{ position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', gap: 4, zIndex: 12 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            height: 3,
+            borderRadius: 2,
+            backgroundColor: i === activeIndex ? C.accent : (i < activeIndex ? '#FFF' : 'rgba(255,255,255,0.28)'),
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  4. TINDER-GRADE CELEBRATION "IT'S A MATCH!" MODAL
+// ══════════════════════════════════════════════════
+function MatchCelebrationModal({ visible, matchedProfile, userProfile, onChat, onClose }) {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+
+  useEffect(() => {
+    if (visible) {
+      triggerHaptic('match');
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 6,
+          tension: 45,
+          useNativeDriver: true,
+        }),
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 0,
+              duration: 1100,
+              useNativeDriver: true,
+            }),
+          ])
+        ),
+      ]).start();
+    } else {
+      scaleAnim.setValue(0.85);
+      pulseAnim.setValue(0);
+    }
+  }, [visible]);
+
+  if (!visible || !matchedProfile) return null;
+
+  const myPhoto = userProfile?.photo || userProfile?.photos?.[0] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80';
+  const theirPhoto = matchedProfile.photo || matchedProfile.photos?.[0] || matchedProfile.mainPhotos?.[0] || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80';
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={{ flex: 1, backgroundColor: 'rgba(7, 9, 14, 0.96)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }], width: '100%', alignItems: 'center' }}>
+          
+          {/* Confetti & Header */}
+          <Text style={{ fontSize: 36, marginBottom: 6 }}>✨ 🥂 ✨</Text>
+          <Text style={{ fontSize: 30, fontWeight: '900', color: C.accent, letterSpacing: 2.5, textTransform: 'uppercase', textAlign: 'center' }}>
+            It's a Match!
+          </Text>
+          <Text style={{ fontSize: 14, color: C.textSoft, textAlign: 'center', marginTop: 6, marginBottom: 32, maxWidth: 290, lineHeight: 20 }}>
+            You and <Text style={{ color: '#FFF', fontWeight: '800' }}>{matchedProfile.name || 'your connection'}</Text> liked each other's Behind The Scenes
+          </Text>
+
+          {/* Overlapping Dual Avatars */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 38 }}>
+            {/* My avatar */}
+            <View style={{ width: 112, height: 112, borderRadius: 56, borderWidth: 3.5, borderColor: C.accent, overflow: 'hidden', zIndex: 2 }}>
+              <Image source={{ uri: myPhoto }} style={{ width: '100%', height: '100%' }} />
+            </View>
+
+            {/* Heart Burst Center */}
+            <Animated.View
+              style={{
+                position: 'absolute',
+                zIndex: 10,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: C.red,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 2.5,
+                borderColor: '#FFF',
+                transform: [
+                  {
+                    scale: pulseAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.25],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Text style={{ fontSize: 20, color: '#FFF' }}>♥</Text>
+            </Animated.View>
+
+            {/* Their avatar */}
+            <View style={{ width: 112, height: 112, borderRadius: 56, borderWidth: 3.5, borderColor: C.emerald, overflow: 'hidden', marginLeft: -24, zIndex: 1 }}>
+              <Image source={{ uri: theirPhoto }} style={{ width: '100%', height: '100%' }} />
+            </View>
+          </View>
+
+          {/* Action CTAs */}
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => {
+              triggerHaptic('medium');
+              onChat(matchedProfile);
+            }}
+            style={{
+              width: '100%',
+              backgroundColor: C.accent,
+              paddingVertical: 16,
+              borderRadius: 20,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 10,
+              shadowColor: C.accent,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.4,
+              shadowRadius: 10,
+              elevation: 6,
+              marginBottom: 12,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>🎙</Text>
+            <Text style={{ color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 }}>
+              Send a Voice Note
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('light');
+              onClose();
+            }}
+            style={{
+              width: '100%',
+              paddingVertical: 14,
+              borderRadius: 20,
+              alignItems: 'center',
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              borderWidth: 1,
+              borderColor: C.border,
+            }}
+          >
+            <Text style={{ color: C.textSoft, fontSize: 14, fontWeight: '700' }}>
+              Keep Swiping ✨
+            </Text>
+          </TouchableOpacity>
+
+        </Animated.View>
+      </View>
+    </Modal>
+  );
 }
 
 // ══════════════════════════════════════════════════
@@ -1836,7 +2091,16 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
         ? profile.photos 
         : [profile.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80']);
 
-  const nextPhoto = () => setPhotoIdx((photoIdx + 1) % photosList.length);
+  const nextPhoto = () => {
+    triggerHaptic('light');
+    setPhotoIdx((prev) => (prev + 1) % photosList.length);
+  };
+
+  const prevPhoto = () => {
+    triggerHaptic('light');
+    setPhotoIdx((prev) => (prev - 1 + photosList.length) % photosList.length);
+  };
+
   const currentPhoto = photosList[photoIdx] || photosList[0];
   const bts = profile.behindTheScenes || {
     caption: profile.bts_caption || 'Behind the scenes: living candidly.',
@@ -1854,69 +2118,91 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
 
   return (
     <ScrollView style={{ flex: 1, width: '100%' }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
-      {/* Photo */}
-      <TouchableOpacity activeOpacity={0.95} onPress={nextPhoto}>
-        <View style={s.photoContainer}>
-          <Image source={{ uri: currentPhoto }} style={s.mainPhoto} />
-          
-          {/* Photo dots */}
-          <View style={s.photoDots}>
-            {photosList.map((_, i) => (
-              <View key={i} style={[s.dot, i === photoIdx && s.dotActive]} />
-            ))}
+      {/* Story-Style Interactive Photo Container */}
+      <View style={s.photoContainer}>
+        <Image source={{ uri: currentPhoto }} style={s.mainPhoto} />
+        
+        {/* Story progress indicator bars */}
+        <StoryPhotoBar count={photosList.length} activeIndex={photoIdx} />
+
+        {/* Left & Right Tap Navigation Touch Zones */}
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{ width: '35%', height: '100%' }}
+              onPress={prevPhoto}
+            />
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{ width: '65%', height: '100%' }}
+              onPress={nextPhoto}
+            />
           </View>
+        </View>
 
-          {/* Country + Tribe badges */}
-          <View style={s.badgeRow}>
-            <View style={s.badgeDark}>
-              <Text style={s.badgeText}>{profile.countryFlag || '🇬🇭'} {profile.country || 'Ghana'}</Text>
-            </View>
-            <View style={s.badgeGold}>
-              <Text style={[s.badgeText, { color: C.accent }]}>{profile.tribe || 'Heritage'}</Text>
-            </View>
+        {/* Country + Tribe badges */}
+        <View style={s.badgeRow} pointerEvents="none">
+          <View style={s.badgeDark}>
+            <Text style={s.badgeText}>{profile.countryFlag || '🇬🇭'} {profile.country || 'Ghana'}</Text>
           </View>
+          <View style={s.badgeGold}>
+            <Text style={[s.badgeText, { color: C.accent }]}>{profile.tribe || 'Heritage'}</Text>
+          </View>
+        </View>
 
-          {/* BTS Button */}
-          <TouchableOpacity style={s.btsFloatBtn} onPress={() => onBts(profile)}>
-            <Text style={s.btsFloatText}>👁 See BTS</Text>
-          </TouchableOpacity>
+        {/* BTS Button */}
+        <TouchableOpacity 
+          style={s.btsFloatBtn} 
+          onPress={() => {
+            triggerHaptic('light');
+            onBts(profile);
+          }}
+        >
+          <Text style={s.btsFloatText}>👁 See BTS</Text>
+        </TouchableOpacity>
 
-          {/* Gradient overlay */}
-          <View style={s.photoGradient} />
+        {/* Gradient overlay */}
+        <View style={s.photoGradient} pointerEvents="none" />
 
-          {/* Name overlay */}
-          <View style={s.nameOverlay}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={s.nameText}>{profile.name || profile.full_name}, {profile.age || 25}</Text>
-              {(profile.verified || profile.liveness_verified) && <Text style={{ fontSize: 16 }}>✅</Text>}
+        {/* Name overlay */}
+        <View style={s.nameOverlay} pointerEvents="none">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={s.nameText}>{profile.name || profile.full_name}, {profile.age || 25}</Text>
+            {(profile.verified || profile.liveness_verified) && <Text style={{ fontSize: 16 }}>✅</Text>}
+          </View>
+          <Text style={[s.bodySmall, { color: '#E2E8F0', fontWeight: '600' }]}>{profile.occupation || 'Creative Professional'}</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+            <View style={s.locPill}>
+              <Text style={s.locText}>📍 {profile.currentCity || profile.current_city || 'Accra'}</Text>
             </View>
-            <Text style={[s.bodySmall, { color: '#E2E8F0', fontWeight: '600' }]}>{profile.occupation || 'Creative Professional'}</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-              <View style={s.locPill}>
-                <Text style={s.locText}>📍 {profile.currentCity || profile.current_city || 'Accra'}</Text>
-              </View>
-              <View style={s.locPill}>
-                <Text style={s.locText}>🧭 {profile.homeTown || profile.home_town || 'Kumasi'}</Text>
-              </View>
+            <View style={s.locPill}>
+              <Text style={s.locText}>🧭 {profile.homeTown || profile.home_town || 'Kumasi'}</Text>
             </View>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
 
-      {/* Voice Note */}
+      {/* Live Audio Waveform Voice Note */}
       <View style={s.section}>
         <View style={s.voiceBox}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, marginRight: 12 }}>
             <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase' }]}>
               🎙 {voice.title || 'Voice Note'}
             </Text>
-            <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>
-              {voice.duration || '0:15'} • Voice Note
+            <View style={{ marginVertical: 6 }}>
+              <WaveformVisualizer isPlaying={audioPlaying} color={C.accent} height={20} barCount={14} />
+            </View>
+            <Text style={[s.bodyTiny, { color: C.textMuted }]}>
+              {voice.duration || '0:15'} • {audioPlaying ? 'Playing audio memo...' : 'Voice Note memo'}
             </Text>
           </View>
           <TouchableOpacity
             style={s.playBtn}
-            onPress={toggleCardAudio}
+            onPress={() => {
+              triggerHaptic('medium');
+              toggleCardAudio();
+            }}
           >
             <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>
               {audioPlaying ? '⏸' : '▶'}
@@ -1931,7 +2217,13 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
       </View>
 
       {/* BTS Teaser */}
-      <TouchableOpacity style={s.btsTeaser} onPress={() => onBts(profile)}>
+      <TouchableOpacity 
+        style={s.btsTeaser} 
+        onPress={() => {
+          triggerHaptic('light');
+          onBts(profile);
+        }}
+      >
         <Image source={{ uri: bts.thumbnail || currentPhoto }} style={s.btsTeaserImg} blurRadius={3} />
         <View style={{ flex: 1 }}>
           <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase' }]}>
@@ -1970,18 +2262,42 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
         <Text style={s.reportText}>🚩 Report Profile</Text>
       </TouchableOpacity>
 
-      {/* Action Buttons */}
+      {/* Action Buttons with Haptic Micro-Interactions */}
       <View style={s.actionBar}>
-        <TouchableOpacity style={[s.actionCircle, { borderColor: 'rgba(239,68,68,0.4)' }]} onPress={onPass}>
+        <TouchableOpacity
+          style={[s.actionCircle, { borderColor: 'rgba(239,68,68,0.4)' }]}
+          onPress={() => {
+            triggerHaptic('medium');
+            onPass();
+          }}
+        >
           <Text style={{ fontSize: 24, color: '#EF4444' }}>✕</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.actionCircle, { borderColor: 'rgba(255,184,0,0.4)' }]} onPress={() => onBts(profile)}>
+        <TouchableOpacity
+          style={[s.actionCircle, { borderColor: 'rgba(255,184,0,0.4)' }]}
+          onPress={() => {
+            triggerHaptic('light');
+            onBts(profile);
+          }}
+        >
           <Text style={{ fontSize: 20, color: C.accent }}>👁</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.actionCircle, { borderColor: 'rgba(59,130,246,0.4)' }]} onPress={onSuperLike}>
+        <TouchableOpacity
+          style={[s.actionCircle, { borderColor: 'rgba(59,130,246,0.4)' }]}
+          onPress={() => {
+            triggerHaptic('heavy');
+            onSuperLike();
+          }}
+        >
           <Text style={{ fontSize: 20, color: C.blue }}>⚡</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.actionCirclePrimary]} onPress={onLike}>
+        <TouchableOpacity
+          style={[s.actionCirclePrimary]}
+          onPress={() => {
+            triggerHaptic('heavy');
+            onLike();
+          }}
+        >
           <Text style={{ fontSize: 24, color: '#000' }}>♥</Text>
         </TouchableOpacity>
       </View>
@@ -2506,11 +2822,14 @@ function ChatScreen({ match, userProfile, onClose }) {
                       ]}
                     >
                       <TouchableOpacity
-                        onPress={() => handleTogglePlayVoiceMessage(item.id, item.audioUri)}
+                        onPress={() => {
+                          triggerHaptic('medium');
+                          handleTogglePlayVoiceMessage(item.id, item.audioUri);
+                        }}
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 16,
+                          width: 34,
+                          height: 34,
+                          borderRadius: 17,
                           backgroundColor: item.sender === 'me' ? '#000' : C.accent,
                           justifyContent: 'center',
                           alignItems: 'center'
@@ -2521,13 +2840,23 @@ function ChatScreen({ match, userProfile, onClose }) {
                         </Text>
                       </TouchableOpacity>
 
-                      <View>
-                        <Text style={{ color: item.sender === 'me' ? '#000' : '#FFF', fontSize: 12, fontWeight: '800' }}>
-                          🎙 Voice Note
-                        </Text>
-                        <Text style={{ color: item.sender === 'me' ? '#333' : C.textMuted, fontSize: 10, marginTop: 1 }}>
-                          {item.duration || '0:05'} • {isPlaying ? 'Playing...' : 'Tap to listen'}
-                        </Text>
+                      <View style={{ flex: 1, minWidth: 100 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                          <Text style={{ color: item.sender === 'me' ? '#000' : '#FFF', fontSize: 12, fontWeight: '800' }}>
+                            🎙 Voice Note
+                          </Text>
+                          <Text style={{ color: item.sender === 'me' ? '#333' : C.textMuted, fontSize: 10 }}>
+                            {item.duration || '0:05'}
+                          </Text>
+                        </View>
+                        <View style={{ marginTop: 4 }}>
+                          <WaveformVisualizer
+                            isPlaying={isPlaying}
+                            color={item.sender === 'me' ? '#1E293B' : C.accent}
+                            height={16}
+                            barCount={10}
+                          />
+                        </View>
                       </View>
                     </View>
                     <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 4, marginHorizontal: 4, fontSize: 10 }]}>{item.time}</Text>
@@ -2546,7 +2875,7 @@ function ChatScreen({ match, userProfile, onClose }) {
             }}
           />
 
-          {/* Clean, Compact Horizontal Icebreakers Bar (Fixed Height, Zero Vertical Stretch) */}
+          {/* Clean, Compact Horizontal Icebreakers Bar */}
           {showIcebreakers && (
             <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', backgroundColor: '#0B0E16', paddingTop: 8, paddingBottom: 6 }}>
               <ScrollView 
@@ -2574,7 +2903,10 @@ function ChatScreen({ match, userProfile, onClose }) {
                       borderRadius: 16,
                       marginRight: 8
                     }} 
-                    onPress={() => send(`${chip.text} ${chip.icon}`)}
+                    onPress={() => {
+                      triggerHaptic('light');
+                      send(`${chip.text} ${chip.icon}`);
+                    }}
                   >
                     <Text style={{ fontSize: 12, marginRight: 5 }}>{chip.icon}</Text>
                     <Text style={{ color: '#F1F5F9', fontSize: 11, fontWeight: '700' }}>{chip.text}</Text>
@@ -2590,14 +2922,18 @@ function ChatScreen({ match, userProfile, onClose }) {
               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.red }} />
+                  <WaveformVisualizer isRecording={true} color={C.red} height={18} barCount={10} />
                   <Text style={{ color: C.red, fontSize: 13, fontWeight: '900' }}>
-                    Recording Voice Note... 0:{recordSeconds < 10 ? '0' : ''}{recordSeconds}
+                    0:{recordSeconds < 10 ? '0' : ''}{recordSeconds}
                   </Text>
                 </View>
 
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
-                    onPress={() => handleStopVoiceRecording(false)}
+                    onPress={() => {
+                      triggerHaptic('light');
+                      handleStopVoiceRecording(false);
+                    }}
                     style={{
                       paddingHorizontal: 10,
                       paddingVertical: 6,
@@ -2609,7 +2945,10 @@ function ChatScreen({ match, userProfile, onClose }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => handleStopVoiceRecording(true)}
+                    onPress={() => {
+                      triggerHaptic('success');
+                      handleStopVoiceRecording(true);
+                    }}
                     style={{
                       paddingHorizontal: 14,
                       paddingVertical: 6,
@@ -2625,7 +2964,10 @@ function ChatScreen({ match, userProfile, onClose }) {
               <>
                 {/* Voice Note Recorder Button */}
                 <TouchableOpacity
-                  onPress={handleStartVoiceRecording}
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    handleStartVoiceRecording();
+                  }}
                   style={{
                     width: 38,
                     height: 38,
@@ -2647,13 +2989,19 @@ function ChatScreen({ match, userProfile, onClose }) {
                   placeholderTextColor={C.textMuted}
                   value={input}
                   onChangeText={setInput}
-                  onSubmitEditing={() => send()}
+                  onSubmitEditing={() => {
+                    triggerHaptic('light');
+                    send();
+                  }}
                   returnKeyType="send"
                 />
 
                 <TouchableOpacity 
                   style={[s.sendBtn, { opacity: input.trim() ? 1 : 0.4 }]} 
-                  onPress={() => send()} 
+                  onPress={() => {
+                    triggerHaptic('light');
+                    send();
+                  }} 
                   disabled={!input.trim()}
                 >
                   <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>→</Text>
@@ -4143,6 +4491,7 @@ export default function App() {
   const [matches, setMatches] = useState(INITIAL_MATCHES);
   const [btsProfile, setBtsProfile] = useState(null);
   const [chatMatch, setChatMatch] = useState(null);
+  const [celebrationMatch, setCelebrationMatch] = useState(null);
   const [dbProfiles, setDbProfiles] = useState(INITIAL_PROFILES);
   const [blockedIds, setBlockedIds] = useState([]);
 
@@ -4281,6 +4630,7 @@ export default function App() {
 
   const handleLike = async () => {
     if (!currentProfile) return;
+    triggerHaptic('heavy');
     const currentUserId = userProfile?.id || userProfile?.email || 'current_user';
     const isMutual = await recordSwipeInDb({
       swiperId: currentUserId,
@@ -4309,12 +4659,13 @@ export default function App() {
       country: currentProfile.country || 'Ghana'
     };
     setMatches(prev => [newMatch, ...prev.filter(m => m.id !== currentProfile.id)]);
-    Alert.alert('🎉 It\'s a Match!', `You and ${currentProfile.name} connected through BTS!`);
+    setCelebrationMatch(newMatch);
     setCurrentIdx(prev => prev + 1);
   };
 
   const handlePass = () => {
     if (currentProfile) {
+      triggerHaptic('light');
       recordSwipeInDb({
         swiperId: userProfile?.id || userProfile?.email || 'current_user',
         targetId: currentProfile.id,
@@ -4373,7 +4724,7 @@ export default function App() {
 
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity onPress={() => setTab('discover')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity onPress={() => { triggerHaptic('light'); setTab('discover'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Image source={require('./assets/bts-official-logo.png')} style={{ width: 34, height: 34, resizeMode: 'contain' }} />
             <View>
               <Text style={s.brandTitleSm}>BEHIND THE SCENES</Text>
@@ -4381,7 +4732,7 @@ export default function App() {
             </View>
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity style={s.headerBtn} onPress={() => setTab('matches')}>
+            <TouchableOpacity style={s.headerBtn} onPress={() => { triggerHaptic('light'); setTab('matches'); }}>
               <Text style={{ fontSize: 16 }}>💬</Text>
               {activeMatches.some(m => m.unread) && <View style={s.headerBadge} />}
             </TouchableOpacity>
@@ -4415,6 +4766,7 @@ export default function App() {
               userGender={userGender}
               userId={userProfile?.id}
               onMatchBack={(p) => {
+                triggerHaptic('match');
                 const newMatch = {
                   id: p.id,
                   name: p.name,
@@ -4429,7 +4781,7 @@ export default function App() {
                   country: "Ghana"
                 };
                 setMatches(prev => [newMatch, ...prev.filter(m => m.id !== p.id)]);
-                setChatMatch(newMatch);
+                setCelebrationMatch(newMatch);
               }}
             />
           )}
@@ -4437,8 +4789,8 @@ export default function App() {
           {tab === 'matches' && (
             <MatchesScreen
               matches={activeMatches}
-              onSelectMatch={(m) => setChatMatch(m)}
-              onBack={() => setTab('discover')}
+              onSelectMatch={(m) => { triggerHaptic('light'); setChatMatch(m); }}
+              onBack={() => { triggerHaptic('light'); setTab('discover'); }}
             />
           )}
 
@@ -4469,22 +4821,22 @@ export default function App() {
 
         {/* Floating Bottom Navigation Bar */}
         <View style={[s.bottomBar, { bottom: BOTTOM_INSET + 8 }]}>
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('discover')}>
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('discover'); }}>
             <Text style={[s.bottomTabIcon, tab === 'discover' && { transform: [{ scale: 1.2 }] }]}>🔥</Text>
             <Text style={[s.bottomTabText, tab === 'discover' && s.bottomTabActive]}>Discover</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('date_drops')}>
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('date_drops'); }}>
             <Text style={[s.bottomTabIcon, tab === 'date_drops' && { transform: [{ scale: 1.2 }] }]}>🥂</Text>
             <Text style={[s.bottomTabText, tab === 'date_drops' && s.bottomTabActive]}>Date Drops</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('likes_you')}>
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('likes_you'); }}>
             <Text style={[s.bottomTabIcon, tab === 'likes_you' && { transform: [{ scale: 1.2 }] }]}>👁</Text>
             <Text style={[s.bottomTabText, tab === 'likes_you' && s.bottomTabActive]}>Likes You</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('matches')}>
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('matches'); }}>
             <View>
               <Text style={[s.bottomTabIcon, tab === 'matches' && { transform: [{ scale: 1.2 }] }]}>💬</Text>
               {matches.some(m => m.unread) && <View style={s.bottomBadge} />}
@@ -4492,7 +4844,7 @@ export default function App() {
             <Text style={[s.bottomTabText, tab === 'matches' && s.bottomTabActive]}>Matches</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('profile')}>
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('profile'); }}>
             <Text style={[s.bottomTabIcon, tab === 'profile' && { transform: [{ scale: 1.2 }] }]}>👤</Text>
             <Text style={[s.bottomTabText, tab === 'profile' && s.bottomTabActive]}>Profile</Text>
           </TouchableOpacity>
@@ -4506,6 +4858,18 @@ export default function App() {
         visible={!!btsProfile}
         onClose={() => setBtsProfile(null)}
         onLike={() => { setBtsProfile(null); handleLike(); }}
+      />
+
+      {/* Match Celebration Modal */}
+      <MatchCelebrationModal
+        visible={Boolean(celebrationMatch)}
+        matchedProfile={celebrationMatch}
+        userProfile={userProfile}
+        onChat={(m) => {
+          setCelebrationMatch(null);
+          setChatMatch(m);
+        }}
+        onClose={() => setCelebrationMatch(null)}
       />
 
       {/* Chat Modal */}
