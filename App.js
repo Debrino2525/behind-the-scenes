@@ -381,6 +381,162 @@ function GoogleLogo({ size = 20, style }) {
 }
 
 // ══════════════════════════════════════════════════
+//  INTERNATIONAL LUXURY VECTOR ICONS (SVG)
+// ══════════════════════════════════════════════════
+function NavDiscoverIcon({ color = '#94A3B8', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 2C8.5 6 6 9.5 6 13.5C6 17.09 8.91 20 12.5 20C16.09 20 19 17.09 19 13.5C19 10.5 17.5 7.5 15.5 5.5C15.5 8 13.5 9.5 12.5 10C12.5 7.5 13 4 12 2Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function NavDateDropsIcon({ color = '#94A3B8', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3 4.9 3 6V20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function NavLikesYouIcon({ color = '#94A3B8', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5C17 19.5 21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12C15 10.34 13.66 9 12 9Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function NavMatchesIcon({ color = '#94A3B8', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function NavProfileIcon({ color = '#94A3B8', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function GenderMaleIcon({ color = C.accent, size = 28 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 3V5H18.59L13.76 9.83C12.71 9.07 11.41 8.62 10 8.62C6.48 8.62 3.62 11.48 3.62 15C3.62 18.52 6.48 21.38 10 21.38C13.52 21.38 16.38 18.52 16.38 15C16.38 13.59 15.93 12.29 15.17 11.24L20 6.41V10H22V3H15ZM10 19.38C7.58 19.38 5.62 17.42 5.62 15C5.62 12.58 7.58 10.62 10 10.62C12.42 10.62 14.38 12.58 14.38 15C14.38 17.42 12.42 19.38 10 19.38Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function GenderFemaleIcon({ color = C.accent, size = 28 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 2C8.69 2 6 4.69 6 8C6 10.97 8.16 13.43 11 13.91V16H9V18H11V22H13V18H15V16H13V13.91C15.84 13.43 18 10.97 18 8C18 4.69 15.31 2 12 2ZM12 12C9.79 12 8 10.21 8 8C8 5.79 9.79 4 12 4C14.21 4 16 5.79 16 8C16 10.21 14.21 12 12 12Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function IconPass({ color = '#EF4444', size = 20 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 6L6 18M6 6L18 18" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function IconEye({ color = C.accent, size = 20 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" fill={color} />
+    </Svg>
+  );
+}
+
+function IconLightning({ color = C.blue, size = 20 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill={color} />
+    </Svg>
+  );
+}
+
+function IconHeart({ color = '#000', size = 22, filled = true }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20.84 4.61C20.3292 4.099 19.7228 3.69364 19.0554 3.41708C18.3879 3.14052 17.6725 2.99817 16.95 2.99817C16.2275 2.99817 15.5121 3.14052 14.8446 3.41708C14.1772 3.69364 13.5708 4.099 13.06 4.61L12 5.67L10.94 4.61C9.9083 3.57831 8.50903 2.99871 7.05 2.99871C5.59096 2.99871 4.19169 3.57831 3.16 4.61C2.12831 5.64169 1.54871 7.04096 1.54871 8.5C1.54871 9.95904 2.12831 11.3583 3.16 12.39L12 21.23L20.84 12.39C21.351 11.8792 21.7564 11.2728 22.0329 10.6054C22.3095 9.93794 22.4518 9.22252 22.4518 8.5C22.4518 7.77748 22.3095 7.06206 22.0329 6.39462C21.7564 5.72718 21.351 5.12078 20.84 4.61Z" fill={filled ? color : 'none'} stroke={filled ? 'none' : color} strokeWidth="2" />
+    </Svg>
+  );
+}
+
+function IconLocationPin({ color = C.accent, size = 13 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill={color} />
+    </Svg>
+  );
+}
+
+function IconVerifiedGold({ size = 15 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2L14.7 4.86L18.66 4.77L19.86 8.55L23.44 10.26L22.61 14.15L24 17.88L20.35 19.34L18.42 22.81L14.5 22.25L12 25L9.5 22.25L5.58 22.81L3.65 19.34L0 17.88L1.39 14.15L0.56 10.26L4.14 8.55L5.34 4.77L9.3 4.86L12 2Z" fill="#FFB800" />
+      <Path d="M8.5 12.5L11 15L15.5 9.5" stroke="#07090E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function IconMail({ color = C.accent, size = 28 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M22 6L12 13L2 6" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function IconShield({ color = C.accent, size = 28 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 22S20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M9 12L11 14L15 10" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function IconAlert({ color = C.red, size = 16 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18C1.64 18.3 1.55 18.65 1.55 19C1.55 19.35 1.64 19.7 1.82 20C2 20.3 2.26 20.56 2.57 20.73C2.88 20.9 3.23 21 3.59 21H20.41C20.77 21 21.12 20.9 21.43 20.73C21.74 20.56 22 20.3 22.18 20C22.36 19.7 22.45 19.35 22.45 19C22.45 18.65 22.36 18.3 22.18 18L13.71 3.86C13.53 3.56 13.27 3.3 12.96 3.13C12.65 2.96 12.3 2.87 11.94 2.87C11.58 2.87 11.23 2.96 10.92 3.13C10.61 3.3 10.35 3.56 10.17 3.86L10.29 3.86Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  STEP HEADER & BACK NAVIGATION
 // ══════════════════════════════════════════════════
 function StepHeader({ currentStep, totalSteps = 5, onBack, title }) {
@@ -1063,7 +1219,7 @@ function OnboardingScreen({ onComplete }) {
             >
               <View style={{ alignItems: 'center', marginVertical: 20 }}>
                 <View style={{ width: 68, height: 68, borderRadius: 22, backgroundColor: 'rgba(212,175,55,0.12)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
-                  <Text style={{ fontSize: 32 }}>✉️</Text>
+                  <IconMail color={C.accent} size={30} />
                 </View>
                 <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Enter 6-Digit Code</Text>
                 <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }]}>
@@ -1078,8 +1234,8 @@ function OnboardingScreen({ onComplete }) {
               {/* ERROR ALERT BANNER */}
               {error ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(224,54,56,0.15)', borderWidth: 1, borderColor: C.red, marginBottom: 16 }}>
-                  <Text style={{ color: C.red, fontSize: 16, marginRight: 8 }}>⚠️</Text>
-                  <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1 }}>{error}</Text>
+                  <IconAlert color={C.red} size={18} />
+                  <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1, marginLeft: 8 }}>{error}</Text>
                 </View>
               ) : null}
 
@@ -1205,8 +1361,8 @@ function OnboardingScreen({ onComplete }) {
             {/* ERROR ALERT BANNER */}
             {error ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(224,54,56,0.15)', borderWidth: 1, borderColor: C.red, marginBottom: 16 }}>
-                <Text style={{ color: C.red, fontSize: 16, marginRight: 8 }}>⚠️</Text>
-                <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1 }}>{error}</Text>
+                <IconAlert color={C.red} size={18} />
+                <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1, marginLeft: 8 }}>{error}</Text>
               </View>
             ) : null}
 
@@ -1345,8 +1501,8 @@ function OnboardingScreen({ onComplete }) {
               contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28, paddingBottom: 40 }}
               keyboardShouldPersistTaps="handled"
             >
-              <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: 'rgba(224,54,56,0.12)', borderWidth: 1, borderColor: 'rgba(224,54,56,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{ fontSize: 36 }}>🛡️</Text>
+              <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: 'rgba(212,175,55,0.12)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                <IconShield color={C.accent} size={36} />
               </View>
               <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Verify Your Age</Text>
               <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
@@ -1413,116 +1569,139 @@ function OnboardingScreen({ onComplete }) {
             contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20 }}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={[s.heading, { color: C.text, fontSize: 22 }]}>Gender & Match Preferences</Text>
-            <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 20 }]}>
-              BTS connects genuine singles with strict opposite-gender matching
+            <Text style={[s.heading, { color: C.text, fontSize: 24, letterSpacing: -0.5 }]}>Gender & Preferences</Text>
+            <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 4, marginBottom: 24, lineHeight: 20 }]}>
+              Behind The Scenes curates verified heterosexual connections across the diaspora.
             </Text>
 
             {/* 1. I AM A: (GENDER SELECTION) */}
-            <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
-              I AM A (YOUR GENDER)
+            <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
+              I am a
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+            <View style={{ flexDirection: 'row', gap: 14, marginBottom: 24 }}>
               <TouchableOpacity
                 onPress={() => {
+                  triggerHaptic('light');
                   setGender('male');
                   setInterestedInGender('female');
                 }}
+                activeOpacity={0.85}
                 style={{
                   flex: 1,
-                  paddingVertical: 18,
-                  borderRadius: 18,
-                  backgroundColor: gender === 'male' ? 'rgba(255,184,0,0.15)' : '#12151e',
+                  paddingVertical: 22,
+                  paddingHorizontal: 16,
+                  borderRadius: 20,
+                  backgroundColor: gender === 'male' ? 'rgba(255,184,0,0.12)' : '#10131B',
                   borderWidth: 1.5,
-                  borderColor: gender === 'male' ? C.accent : C.border,
+                  borderColor: gender === 'male' ? C.accent : 'rgba(255,255,255,0.08)',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  shadowColor: gender === 'male' ? C.accent : 'transparent',
+                  shadowOpacity: 0.25,
+                  shadowRadius: 10,
                 }}
               >
-                <Text style={{ fontSize: 32, marginBottom: 6 }}>👨</Text>
-                <Text style={{ color: gender === 'male' ? C.accent : '#FFF', fontWeight: '900', fontSize: 15 }}>
-                  Man / Male
+                <GenderMaleIcon color={gender === 'male' ? C.accent : '#94A3B8'} size={32} />
+                <Text style={{ color: gender === 'male' ? '#FFFFFF' : '#94A3B8', fontWeight: '800', fontSize: 16, marginTop: 10 }}>
+                  Man
                 </Text>
-                {gender === 'male' && (
-                  <View style={{ marginTop: 6, backgroundColor: C.accent, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                    <Text style={{ color: '#000', fontSize: 9, fontWeight: '900' }}>SELECTED</Text>
-                  </View>
-                )}
+                <View style={{ marginTop: 8, height: 20, justifyContent: 'center' }}>
+                  {gender === 'male' ? (
+                    <View style={{ backgroundColor: C.accent, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 10 }}>
+                      <Text style={{ color: '#000', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>SELECTED</Text>
+                    </View>
+                  ) : (
+                    <Text style={{ color: '#64748B', fontSize: 11, fontWeight: '600' }}>Select</Text>
+                  )}
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => {
+                  triggerHaptic('light');
                   setGender('female');
                   setInterestedInGender('male');
                 }}
+                activeOpacity={0.85}
                 style={{
                   flex: 1,
-                  paddingVertical: 18,
-                  borderRadius: 18,
-                  backgroundColor: gender === 'female' ? 'rgba(255,184,0,0.15)' : '#12151e',
+                  paddingVertical: 22,
+                  paddingHorizontal: 16,
+                  borderRadius: 20,
+                  backgroundColor: gender === 'female' ? 'rgba(255,184,0,0.12)' : '#10131B',
                   borderWidth: 1.5,
-                  borderColor: gender === 'female' ? C.accent : C.border,
+                  borderColor: gender === 'female' ? C.accent : 'rgba(255,255,255,0.08)',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  shadowColor: gender === 'female' ? C.accent : 'transparent',
+                  shadowOpacity: 0.25,
+                  shadowRadius: 10,
                 }}
               >
-                <Text style={{ fontSize: 32, marginBottom: 6 }}>👩</Text>
-                <Text style={{ color: gender === 'female' ? C.accent : '#FFF', fontWeight: '900', fontSize: 15 }}>
-                  Woman / Female
+                <GenderFemaleIcon color={gender === 'female' ? C.accent : '#94A3B8'} size={32} />
+                <Text style={{ color: gender === 'female' ? '#FFFFFF' : '#94A3B8', fontWeight: '800', fontSize: 16, marginTop: 10 }}>
+                  Woman
                 </Text>
-                {gender === 'female' && (
-                  <View style={{ marginTop: 6, backgroundColor: C.accent, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                    <Text style={{ color: '#000', fontSize: 9, fontWeight: '900' }}>SELECTED</Text>
-                  </View>
-                )}
+                <View style={{ marginTop: 8, height: 20, justifyContent: 'center' }}>
+                  {gender === 'female' ? (
+                    <View style={{ backgroundColor: C.accent, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 10 }}>
+                      <Text style={{ color: '#000', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>SELECTED</Text>
+                    </View>
+                  ) : (
+                    <Text style={{ color: '#64748B', fontSize: 11, fontWeight: '600' }}>Select</Text>
+                  )}
+                </View>
               </TouchableOpacity>
             </View>
 
             {/* 2. STRICT OPPOSITE-GENDER MATCHING POLICY */}
             <View style={{
-              backgroundColor: '#0D111A',
-              borderRadius: 18,
-              padding: 16,
+              backgroundColor: '#0D1017',
+              borderRadius: 20,
+              padding: 18,
               borderWidth: 1,
-              borderColor: 'rgba(255,184,0,0.3)',
-              marginBottom: 22
+              borderColor: 'rgba(255,255,255,0.08)',
+              marginBottom: 24
             }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <Text style={{ fontSize: 16 }}>🔒</Text>
-                <Text style={{ color: C.accent, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>
-                  STRICT OPPOSITE-GENDER MATCHING
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' }}>
+                  Matchmaking Policy
                 </Text>
+                <View style={{ backgroundColor: 'rgba(16,185,129,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)' }}>
+                  <Text style={{ color: C.emerald, fontSize: 10, fontWeight: '800' }}>Heterosexual Only</Text>
+                </View>
               </View>
-              <Text style={{ color: C.textSoft, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
-                Under BTS security & community rules, male profiles cannot match with other males, and female profiles cannot match with females. Matching is strictly opposite-gender.
+              <Text style={{ color: C.textSoft, fontSize: 12, lineHeight: 18, marginBottom: 14 }}>
+                BTS strictly pairs men with women and women with men. Discovery feeds automatically filter for your opposite gender.
               </Text>
               <View style={{
-                backgroundColor: 'rgba(16,185,129,0.12)',
-                padding: 12,
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                paddingVertical: 12,
+                paddingHorizontal: 14,
                 borderRadius: 14,
                 borderWidth: 1,
-                borderColor: C.emerald,
+                borderColor: 'rgba(255,255,255,0.08)',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 8
+                gap: 10
               }}>
-                <Text style={{ color: C.emerald, fontSize: 16 }}>✓</Text>
-                <Text style={{ color: C.emerald, fontSize: 12, fontWeight: '800', flex: 1 }}>
-                  Looking to match with: {gender === 'male' ? 'Women 👩' : 'Men 👨'} exclusively
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.emerald }} />
+                <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: '700', flex: 1 }}>
+                  Connecting with: <Text style={{ color: C.accent, fontWeight: '900' }}>{gender === 'male' ? 'Women' : 'Men'}</Text> exclusively
                 </Text>
               </View>
             </View>
 
             {/* 3. AGE RANGE PREFERENCE */}
-            <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginBottom: 8 }}>
-              AGE RANGE YOU'RE INTERESTED IN
+            <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
+              Preferred Age Range
             </Text>
-            <Text style={{ color: C.textSoft, fontSize: 11, marginBottom: 12 }}>
-              Only singles within your chosen age window will appear in your discovery stack.
+            <Text style={{ color: C.textSoft, fontSize: 12, marginBottom: 14, lineHeight: 17 }}>
+              Only singles within your specified age bracket will appear in your discovery feed.
             </Text>
 
             {/* Age Quick Presets */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               {[
                 { min: '18', max: '25', label: '18 - 25' },
                 { min: '21', max: '30', label: '21 - 30' },
@@ -1535,19 +1714,20 @@ function OnboardingScreen({ onComplete }) {
                   <TouchableOpacity
                     key={idx}
                     onPress={() => {
+                      triggerHaptic('light');
                       setPreferredMinAge(p.min);
                       setPreferredMaxAge(p.max);
                     }}
                     style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 12,
-                      backgroundColor: isSelected ? C.accent : 'rgba(255,255,255,0.06)',
-                      borderWidth: 1,
-                      borderColor: isSelected ? C.accent : C.border
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 14,
+                      backgroundColor: isSelected ? 'rgba(255,184,0,0.18)' : '#10131B',
+                      borderWidth: 1.5,
+                      borderColor: isSelected ? C.accent : 'rgba(255,255,255,0.08)'
                     }}
                   >
-                    <Text style={{ color: isSelected ? '#000' : '#FFF', fontSize: 12, fontWeight: '800' }}>
+                    <Text style={{ color: isSelected ? C.accent : '#94A3B8', fontSize: 13, fontWeight: isSelected ? '900' : '700' }}>
                       {p.label}
                     </Text>
                   </TouchableOpacity>
@@ -1556,9 +1736,9 @@ function OnboardingScreen({ onComplete }) {
             </View>
 
             {/* Custom Min / Max Inputs */}
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 26, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28, alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>MIN AGE (18+)</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 6 }}>MIN AGE</Text>
                 <TextInput
                   style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 16, fontWeight: '800' }]}
                   value={preferredMinAge}
@@ -1570,10 +1750,10 @@ function OnboardingScreen({ onComplete }) {
                 />
               </View>
 
-              <Text style={{ color: C.accent, fontWeight: '900', fontSize: 16, marginTop: 16 }}>TO</Text>
+              <Text style={{ color: C.accent, fontWeight: '900', fontSize: 14, marginTop: 18 }}>TO</Text>
 
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>MAX AGE</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 6 }}>MAX AGE</Text>
                 <TextInput
                   style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 16, fontWeight: '800' }]}
                   value={preferredMaxAge}
@@ -1587,8 +1767,9 @@ function OnboardingScreen({ onComplete }) {
             </View>
 
             <TouchableOpacity 
-              style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
+              style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: 20 }]} 
               onPress={() => {
+                triggerHaptic('medium');
                 Keyboard.dismiss();
                 const min = parseInt(preferredMinAge, 10);
                 const max = parseInt(preferredMaxAge, 10);
@@ -1603,7 +1784,7 @@ function OnboardingScreen({ onComplete }) {
                 setStep(5);
               }}
             >
-              <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Continue to Country & Roots →</Text>
+              <Text style={[s.btnPrimaryText, { fontSize: 15 }]}>Continue to Country & Roots →</Text>
             </TouchableOpacity>
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -2163,8 +2344,12 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
             triggerHaptic('light');
             onBts(profile);
           }}
+          activeOpacity={0.85}
         >
-          <Text style={s.btsFloatText}>👁 See BTS</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <IconEye color={C.accent} size={13} />
+            <Text style={s.btsFloatText}>See BTS</Text>
+          </View>
         </TouchableOpacity>
 
         {/* Gradient overlay */}
@@ -2174,15 +2359,16 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
         <View style={s.nameOverlay} pointerEvents="none">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={s.nameText}>{profile.name || profile.full_name}, {profile.age || 25}</Text>
-            {(profile.verified || profile.liveness_verified) && <Text style={{ fontSize: 16 }}>✅</Text>}
+            {(profile.verified || profile.liveness_verified) && <IconVerifiedGold size={17} />}
           </View>
           <Text style={[s.bodySmall, { color: '#E2E8F0', fontWeight: '600' }]}>{profile.occupation || 'Creative Professional'}</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
             <View style={s.locPill}>
-              <Text style={s.locText}>📍 {profile.currentCity || profile.current_city || 'Accra'}</Text>
+              <IconLocationPin color={C.accent} size={11} />
+              <Text style={s.locText}>{profile.currentCity || profile.current_city || 'Accra'}</Text>
             </View>
             <View style={s.locPill}>
-              <Text style={s.locText}>🧭 {profile.homeTown || profile.home_town || 'Kumasi'}</Text>
+              <Text style={[s.locText, { color: '#94A3B8' }]}>Roots: {profile.homeTown || profile.home_town || 'Kumasi'}</Text>
             </View>
           </View>
         </View>
@@ -2192,8 +2378,8 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
       <View style={s.section}>
         <View style={s.voiceBox}>
           <View style={{ flex: 1, marginRight: 12 }}>
-            <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase' }]}>
-              🎙 {voice.title || 'Voice Note'}
+            <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+              VOICE INTRO • {voice.title || 'Voice Note'}
             </Text>
             <View style={{ marginVertical: 6 }}>
               <WaveformVisualizer isPlaying={audioPlaying} color={C.accent} height={20} barCount={14} />
@@ -2209,8 +2395,8 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
               toggleCardAudio();
             }}
           >
-            <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>
-              {audioPlaying ? '⏸' : '▶'}
+            <Text style={{ color: '#000', fontWeight: '900', fontSize: 14 }}>
+              {audioPlaying ? '❚❚' : '▶'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -2228,17 +2414,21 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
           triggerHaptic('light');
           onBts(profile);
         }}
+        activeOpacity={0.85}
       >
         <Image source={{ uri: bts.thumbnail || currentPhoto }} style={s.btsTeaserImg} blurRadius={3} />
         <View style={{ flex: 1 }}>
-          <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase' }]}>
-            ✨ Behind The Scenes
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <IconEye color={C.accent} size={13} />
+            <Text style={[s.bodyTiny, { color: C.accent, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+              Behind The Scenes
+            </Text>
+          </View>
           <Text style={[s.bodySmall, { color: '#E2E8F0', marginTop: 2 }]} numberOfLines={2}>
             {bts.caption || 'Candid moment'}
           </Text>
           <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>
-            Tap to unlock candid
+            Tap to unlock candid moment
           </Text>
         </View>
         <Text style={{ fontSize: 18, color: C.textMuted }}>›</Text>
@@ -2247,7 +2437,7 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
       {/* Cultural Prompts */}
       {prompts.map((cp, i) => (
         <View key={i} style={s.promptBox}>
-          <Text style={[s.bodyTiny, { color: C.textMuted, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }]}>
+          <Text style={[s.bodyTiny, { color: C.textMuted, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }]}>
             {cp.question}
           </Text>
           <Text style={[s.bodySmall, { color: '#E2E8F0', marginTop: 4, fontWeight: '600' }]}>
@@ -2258,13 +2448,13 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
 
       {/* Tags */}
       <View style={[s.section, { flexDirection: 'row', flexWrap: 'wrap', gap: 6 }]}>
-        <View style={s.tag}><Text style={s.tagText}>🎯 {profile.intent || 'Serious relationship'}</Text></View>
-        <View style={s.tag}><Text style={s.tagText}>🗣 {langs}</Text></View>
+        <View style={s.tag}><Text style={s.tagText}>Intent: {profile.intent || 'Serious relationship'}</Text></View>
+        <View style={s.tag}><Text style={s.tagText}>{langs}</Text></View>
       </View>
 
       {/* Report */}
       <TouchableOpacity style={s.reportBtn} onPress={() => onReport(profile.name)}>
-        <Text style={s.reportText}>🚩 Report Profile</Text>
+        <Text style={s.reportText}>Report Profile</Text>
       </TouchableOpacity>
 
       {/* Action Buttons with Haptic Micro-Interactions */}
@@ -2275,8 +2465,9 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
             triggerHaptic('medium');
             onPass();
           }}
+          activeOpacity={0.8}
         >
-          <Text style={{ fontSize: 24, color: '#EF4444' }}>✕</Text>
+          <IconPass color="#EF4444" size={22} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.actionCircle, { borderColor: 'rgba(255,184,0,0.4)' }]}
@@ -2284,8 +2475,9 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
             triggerHaptic('light');
             onBts(profile);
           }}
+          activeOpacity={0.8}
         >
-          <Text style={{ fontSize: 20, color: C.accent }}>👁</Text>
+          <IconEye color={C.accent} size={20} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.actionCircle, { borderColor: 'rgba(59,130,246,0.4)' }]}
@@ -2293,17 +2485,19 @@ function ProfileCard({ profile, onLike, onPass, onSuperLike, onBts, onReport }) 
             triggerHaptic('heavy');
             onSuperLike();
           }}
+          activeOpacity={0.8}
         >
-          <Text style={{ fontSize: 20, color: C.blue }}>⚡</Text>
+          <IconLightning color={C.blue} size={20} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[s.actionCirclePrimary]}
+          style={s.actionCirclePrimary}
           onPress={() => {
             triggerHaptic('heavy');
             onLike();
           }}
+          activeOpacity={0.85}
         >
-          <Text style={{ fontSize: 24, color: '#000' }}>♥</Text>
+          <IconHeart color="#07090E" size={24} filled={true} />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -2395,7 +2589,7 @@ function MatchesScreen({ matches, onSelectMatch, onBack }) {
         <TouchableOpacity onPress={onBack}>
           <Text style={[s.bodySmall, { color: C.accent, fontWeight: '800' }]}>← Discover</Text>
         </TouchableOpacity>
-        <Text style={[s.bodySmall, { color: C.text, fontWeight: '800' }]}>✨ Matches & Chats</Text>
+        <Text style={[s.bodySmall, { color: C.text, fontWeight: '800', fontSize: 16 }]}>Matches & Conversations</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -2419,6 +2613,7 @@ function MatchesScreen({ matches, onSelectMatch, onBack }) {
       <FlatList
         data={matches}
         keyExtractor={(m, idx) => `${m.id}-${idx}`}
+        contentContainerStyle={{ paddingBottom: 180 }}
         renderItem={({ item }) => (
           <TouchableOpacity style={s.chatRow} onPress={() => onSelectMatch(item)}>
             <Image source={{ uri: item.photo }} style={s.chatAvatar} />
@@ -3195,7 +3390,7 @@ function DateDropsScreen({ userProfile }) {
       {/* Feed Header */}
       <View style={s.screenHeader}>
         <View>
-          <Text style={[s.bodySmall, { color: C.text, fontWeight: '900', fontSize: 16 }]}>🥂 BTS Date Drops</Text>
+          <Text style={[s.bodySmall, { color: C.text, fontWeight: '900', fontSize: 16 }]}>Date Drops</Text>
           <Text style={[s.bodyTiny, { color: C.textMuted, marginTop: 2 }]}>Real singles. Real verified dates.</Text>
         </View>
         <TouchableOpacity 
@@ -3209,9 +3404,9 @@ function DateDropsScreen({ userProfile }) {
             gap: 6
           }} 
           onPress={() => setShowUploadModal(true)}
+          activeOpacity={0.85}
         >
-          <Text style={{ fontSize: 13 }}>📸</Text>
-          <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Drop a Date</Text>
+          <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>+ Drop a Date</Text>
         </TouchableOpacity>
       </View>
 
@@ -3219,7 +3414,7 @@ function DateDropsScreen({ userProfile }) {
       <FlatList
         data={drops}
         keyExtractor={(d, idx) => `${d.id}-${idx}`}
-        contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 180 }}
         renderItem={({ item }) => {
           const commentsList = item.comments || [];
           return (
@@ -3238,8 +3433,9 @@ function DateDropsScreen({ userProfile }) {
 
               {/* Card Body */}
               <View style={{ padding: 14 }}>
-                <View style={[s.venuePill, { alignSelf: 'flex-start', marginBottom: 8 }]}>
-                  <Text style={[s.bodyTiny, { color: '#CBD5E1', fontWeight: '700' }]}>📍 {item.venue}</Text>
+                <View style={[s.venuePill, { alignSelf: 'flex-start', marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                  <IconLocationPin color={C.accent} size={11} />
+                  <Text style={[s.bodyTiny, { color: '#CBD5E1', fontWeight: '700' }]}>{item.venue}</Text>
                 </View>
 
                 <Text style={[s.bodySmall, { color: '#F1F5F9', lineHeight: 20 }]}>"{item.caption}"</Text>
@@ -3262,9 +3458,9 @@ function DateDropsScreen({ userProfile }) {
                       borderColor: 'rgba(255,184,0,0.3)'
                     }} 
                     onPress={() => cheer(item.id)}
+                    activeOpacity={0.8}
                   >
-                    <Text style={{ fontSize: 13, marginRight: 6 }}>🎉</Text>
-                    <Text style={{ color: C.accent, fontWeight: '800', fontSize: 12 }}>{item.cheersCount} Cheers</Text>
+                    <Text style={{ color: C.accent, fontWeight: '800', fontSize: 12 }}>✦ {item.cheersCount} Cheers</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity 
@@ -3279,8 +3475,8 @@ function DateDropsScreen({ userProfile }) {
                       borderColor: 'rgba(255,255,255,0.12)'
                     }}
                     onPress={() => setActiveCommentDropId(item.id)}
+                    activeOpacity={0.8}
                   >
-                    <Text style={{ fontSize: 13, marginRight: 6 }}>💬</Text>
                     <Text style={{ color: '#E2E8F0', fontWeight: '800', fontSize: 12 }}>
                       {commentsList.length} {commentsList.length === 1 ? 'Comment' : 'Comments'}
                     </Text>
@@ -3616,7 +3812,7 @@ function LikesYouScreen({ onMatchBack, userGender = 'male', userId = null }) {
         keyExtractor={(p, idx) => `${p.id}-${idx}`}
         numColumns={2}
         columnWrapperStyle={{ gap: 12 }}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 180 }}
         renderItem={({ item }) => (
           <View style={s.likesCard}>
             <Image source={{ uri: item.photo }} style={{ width: '100%', height: 150, borderRadius: 16 }} />
@@ -3627,7 +3823,7 @@ function LikesYouScreen({ onMatchBack, userGender = 'male', userId = null }) {
                 "{item.note}"
               </Text>
               <TouchableOpacity style={[s.btnPrimary, { paddingVertical: 8, marginTop: 8 }]} onPress={() => onMatchBack(item)}>
-                <Text style={[s.btnPrimaryText, { fontSize: 11 }]}>♥ Match Back</Text>
+                <Text style={[s.btnPrimaryText, { fontSize: 12 }]}>Connect Back</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3900,54 +4096,54 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <ScrollView 
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 175 }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
       {/* Profile Header */}
-      <View style={{ alignItems: 'center', marginBottom: 18 }}>
+      <View style={{ alignItems: 'center', marginBottom: 22 }}>
         <View style={{ position: 'relative' }}>
           <View style={{
-            width: 100,
-            height: 100,
-            borderRadius: 50,
+            width: 104,
+            height: 104,
+            borderRadius: 52,
             borderWidth: 3,
             borderColor: C.accent,
             overflow: 'hidden',
             backgroundColor: '#1E2433',
             shadowColor: C.accent,
-            shadowOpacity: 0.3,
-            shadowRadius: 10,
-            elevation: 6
+            shadowOpacity: 0.35,
+            shadowRadius: 12,
+            elevation: 8
           }}>
             <Image source={{ uri: photos[0] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
           </View>
           <View style={{
             position: 'absolute',
-            bottom: 0,
-            right: 0,
-            width: 28,
-            height: 28,
-            borderRadius: 14,
+            bottom: 2,
+            right: 2,
+            width: 26,
+            height: 26,
+            borderRadius: 13,
             backgroundColor: C.accent,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 2,
-            borderColor: C.bg
+            borderColor: '#07090E'
           }}>
-            <Text style={{ fontSize: 12 }}>★</Text>
+            <Text style={{ fontSize: 11, fontWeight: '900', color: '#000' }}>✓</Text>
           </View>
         </View>
 
-        <Text style={[s.heading, { color: C.text, fontSize: 20, marginTop: 10 }]}>
+        <Text style={[s.heading, { color: C.text, fontSize: 22, marginTop: 12, letterSpacing: -0.3 }]}>
           {name}, {age}
         </Text>
-        <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 2 }]}>
+        <Text style={[s.bodySmall, { color: C.textSoft, marginTop: 3, fontSize: 13 }]}>
           {userProfile?.countryFlag || '🇬🇭'} {city} • {tribe}
         </Text>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: C.emerald }}>
-          <Text style={{ fontSize: 12 }}>🛡️</Text>
-          <Text style={{ color: C.emerald, fontWeight: '800', fontSize: 11 }}>Gold Verified Member (18+)</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)' }}>
+          <Text style={{ color: C.emerald, fontWeight: '800', fontSize: 11, letterSpacing: 0.5 }}>✓ Gold Verified Member (18+)</Text>
         </View>
       </View>
 
@@ -3959,17 +4155,17 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
       )}
 
       {/* 3 Photos Gallery (Visible to Connected Matches) */}
-      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+      <View style={{ backgroundColor: C.card, borderRadius: 24, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1 }}>
-            YOUR 3 MATCH PHOTOS
+          <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+            Your 3 Match Photos
           </Text>
-          <View style={{ backgroundColor: 'rgba(255,184,0,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+          <View style={{ backgroundColor: 'rgba(255,184,0,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
             <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800' }}>3 Photos Total</Text>
           </View>
         </View>
         <Text style={{ color: C.textSoft, fontSize: 11, marginBottom: 14, lineHeight: 16 }}>
-          Connected matches can view all 3 photos. Photo 1 is your main avatar.
+          Connected matches can view all 3 photos. Photo 1 is your primary discovery card.
         </Text>
 
         <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
@@ -3980,8 +4176,8 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
               activeOpacity={0.8}
               style={{
                 width: '100%',
-                aspectRatio: 1,
-                borderRadius: 16,
+                aspectRatio: 0.85,
+                borderRadius: 18,
                 borderWidth: 2,
                 borderColor: C.accent,
                 overflow: 'hidden',
@@ -3990,12 +4186,12 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
               }}
             >
               <Image source={{ uri: photos[0] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-              <View style={{ position: 'absolute', bottom: 4, left: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 2, borderRadius: 6, alignItems: 'center' }}>
-                <Text style={{ color: C.accent, fontSize: 9, fontWeight: '900' }}>★ Main Avatar</Text>
+              <View style={{ position: 'absolute', bottom: 6, left: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 3, borderRadius: 6, alignItems: 'center' }}>
+                <Text style={{ color: C.accent, fontSize: 9, fontWeight: '900' }}>Main Card</Text>
               </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleChangePhotoIndex(0)} style={{ marginTop: 6, paddingVertical: 2 }}>
-              <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800' }}>Change</Text>
+              <Text style={{ color: C.accent, fontSize: 11, fontWeight: '800' }}>Change</Text>
             </TouchableOpacity>
           </View>
 
@@ -4006,12 +4202,12 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
               activeOpacity={0.8}
               style={{
                 width: '100%',
-                aspectRatio: 1,
-                borderRadius: 16,
+                aspectRatio: 0.85,
+                borderRadius: 18,
                 borderWidth: 1.5,
-                borderColor: photos[1] ? 'rgba(255,255,255,0.2)' : 'rgba(255,184,0,0.4)',
+                borderColor: photos[1] ? 'rgba(255,255,255,0.15)' : 'rgba(255,184,0,0.3)',
                 overflow: 'hidden',
-                backgroundColor: '#161922',
+                backgroundColor: '#12151E',
                 justifyContent: 'center',
                 alignItems: 'center',
                 position: 'relative'
@@ -4020,19 +4216,19 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
               {photos[1] ? (
                 <>
                   <Image source={{ uri: photos[1] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-                  <View style={{ position: 'absolute', bottom: 4, left: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 2, borderRadius: 6, alignItems: 'center' }}>
+                  <View style={{ position: 'absolute', bottom: 6, left: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 3, borderRadius: 6, alignItems: 'center' }}>
                     <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>Photo 2</Text>
                   </View>
                 </>
               ) : (
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ fontSize: 22, color: C.accent }}>+</Text>
-                  <Text style={{ color: C.textMuted, fontSize: 9, fontWeight: '700' }}>Upload</Text>
+                  <Text style={{ color: C.textMuted, fontSize: 10, fontWeight: '700' }}>Upload</Text>
                 </View>
               )}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleChangePhotoIndex(1)} style={{ marginTop: 6, paddingVertical: 2 }}>
-              <Text style={{ color: C.textSoft, fontSize: 10, fontWeight: '800' }}>{photos[1] ? 'Replace' : 'Add'}</Text>
+              <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '800' }}>{photos[1] ? 'Replace' : 'Add'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -4043,12 +4239,12 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
               activeOpacity={0.8}
               style={{
                 width: '100%',
-                aspectRatio: 1,
-                borderRadius: 16,
+                aspectRatio: 0.85,
+                borderRadius: 18,
                 borderWidth: 1.5,
-                borderColor: photos[2] ? 'rgba(255,255,255,0.2)' : 'rgba(255,184,0,0.4)',
+                borderColor: photos[2] ? 'rgba(255,255,255,0.15)' : 'rgba(255,184,0,0.3)',
                 overflow: 'hidden',
-                backgroundColor: '#161922',
+                backgroundColor: '#12151E',
                 justifyContent: 'center',
                 alignItems: 'center',
                 position: 'relative'
@@ -4057,19 +4253,19 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
               {photos[2] ? (
                 <>
                   <Image source={{ uri: photos[2] }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-                  <View style={{ position: 'absolute', bottom: 4, left: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 2, borderRadius: 6, alignItems: 'center' }}>
+                  <View style={{ position: 'absolute', bottom: 6, left: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 3, borderRadius: 6, alignItems: 'center' }}>
                     <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>Photo 3</Text>
                   </View>
                 </>
               ) : (
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ fontSize: 22, color: C.accent }}>+</Text>
-                  <Text style={{ color: C.textMuted, fontSize: 9, fontWeight: '700' }}>Upload</Text>
+                  <Text style={{ color: C.textMuted, fontSize: 10, fontWeight: '700' }}>Upload</Text>
                 </View>
               )}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleChangePhotoIndex(2)} style={{ marginTop: 6, paddingVertical: 2 }}>
-              <Text style={{ color: C.textSoft, fontSize: 10, fontWeight: '800' }}>{photos[2] ? 'Replace' : 'Add'}</Text>
+              <Text style={{ color: C.textSoft, fontSize: 11, fontWeight: '800' }}>{photos[2] ? 'Replace' : 'Add'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -4078,33 +4274,35 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
       {/* ───────────────────────────────────────────── */}
       {/* GENDER & HETEROSEXUAL MATCH PREFERENCES        */}
       {/* ───────────────────────────────────────────── */}
-      <View style={{ backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ color: C.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1 }}>
-            GENDER & DATING PREFERENCES 🔒
-          </Text>
-          <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-            <Text style={{ color: C.emerald, fontSize: 10, fontWeight: '800' }}>Strict Heterosexual Policy</Text>
+      <View style={{ backgroundColor: C.card, borderRadius: 24, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 }}>
+        <View style={{ marginBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              Gender & Preferences
+            </Text>
+            <View style={{ backgroundColor: 'rgba(16,185,129,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)' }}>
+              <Text style={{ color: C.emerald, fontSize: 10, fontWeight: '800' }}>Heterosexual Only</Text>
+            </View>
           </View>
         </View>
 
         <Text style={{ color: C.textSoft, fontSize: 11, lineHeight: 16, marginBottom: 14 }}>
-          BTS strictly matches men with women and women with men. Male profiles never match with males; female profiles never match with females.
+          Behind The Scenes strictly matches men with women and women with men across the diaspora.
         </Text>
 
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
           <View style={{
             flex: 1,
             backgroundColor: '#0D111A',
             padding: 12,
-            borderRadius: 14,
+            borderRadius: 16,
             borderWidth: 1,
             borderColor: C.border,
             alignItems: 'center'
           }}>
-            <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>YOUR GENDER</Text>
-            <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '900' }}>
-              {gender === 'female' ? '👩 Woman / Female' : '👨 Man / Male'}
+            <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 4 }}>YOUR GENDER</Text>
+            <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '800' }}>
+              {gender === 'female' ? 'Woman' : 'Man'}
             </Text>
           </View>
 
@@ -4112,26 +4310,26 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
             flex: 1,
             backgroundColor: 'rgba(255,184,0,0.08)',
             padding: 12,
-            borderRadius: 14,
+            borderRadius: 16,
             borderWidth: 1,
             borderColor: 'rgba(255,184,0,0.3)',
             alignItems: 'center'
           }}>
-            <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800', marginBottom: 4 }}>MATCHING WITH</Text>
+            <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 4 }}>MATCHING WITH</Text>
             <Text style={{ color: C.accent, fontSize: 14, fontWeight: '900' }}>
-              {gender === 'female' ? '👨 Men Only' : '👩 Women Only'}
+              {gender === 'female' ? 'Men Only' : 'Women Only'}
             </Text>
           </View>
         </View>
 
         {/* Preferred Age Range */}
-        <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', marginBottom: 6 }}>
-          INTERESTED AGE RANGE (DISCOVERY FILTER):
+        <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 8, textTransform: 'uppercase' }}>
+          Discovery Age Filter:
         </Text>
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <TextInput
-              style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 15, fontWeight: '800' }]}
+              style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 15, fontWeight: '800', borderRadius: 14 }]}
               value={preferredMinAge}
               onChangeText={setPreferredMinAge}
               keyboardType="number-pad"
@@ -4143,7 +4341,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
           <Text style={{ color: C.accent, fontWeight: '900', fontSize: 14 }}>TO</Text>
           <View style={{ flex: 1 }}>
             <TextInput
-              style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 15, fontWeight: '800' }]}
+              style={[s.textInput, { width: '100%', marginTop: 0, textAlign: 'center', fontSize: 15, fontWeight: '800', borderRadius: 14 }]}
               value={preferredMaxAge}
               onChangeText={setPreferredMaxAge}
               keyboardType="number-pad"
@@ -4827,30 +5025,30 @@ export default function App() {
         {/* Floating Bottom Navigation Bar */}
         <View style={[s.bottomBar, { bottom: BOTTOM_INSET + 8 }]}>
           <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('discover'); }}>
-            <Text style={[s.bottomTabIcon, tab === 'discover' && { transform: [{ scale: 1.2 }] }]}>🔥</Text>
+            <NavDiscoverIcon color={tab === 'discover' ? C.accent : '#64748B'} size={24} />
             <Text style={[s.bottomTabText, tab === 'discover' && s.bottomTabActive]}>Discover</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('date_drops'); }}>
-            <Text style={[s.bottomTabIcon, tab === 'date_drops' && { transform: [{ scale: 1.2 }] }]}>🥂</Text>
+            <NavDateDropsIcon color={tab === 'date_drops' ? C.accent : '#64748B'} size={24} />
             <Text style={[s.bottomTabText, tab === 'date_drops' && s.bottomTabActive]}>Date Drops</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('likes_you'); }}>
-            <Text style={[s.bottomTabIcon, tab === 'likes_you' && { transform: [{ scale: 1.2 }] }]}>👁</Text>
+            <NavLikesYouIcon color={tab === 'likes_you' ? C.accent : '#64748B'} size={24} />
             <Text style={[s.bottomTabText, tab === 'likes_you' && s.bottomTabActive]}>Likes You</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('matches'); }}>
             <View>
-              <Text style={[s.bottomTabIcon, tab === 'matches' && { transform: [{ scale: 1.2 }] }]}>💬</Text>
+              <NavMatchesIcon color={tab === 'matches' ? C.accent : '#64748B'} size={24} />
               {matches.some(m => m.unread) && <View style={s.bottomBadge} />}
             </View>
             <Text style={[s.bottomTabText, tab === 'matches' && s.bottomTabActive]}>Matches</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('profile'); }}>
-            <Text style={[s.bottomTabIcon, tab === 'profile' && { transform: [{ scale: 1.2 }] }]}>👤</Text>
+            <NavProfileIcon color={tab === 'profile' ? C.accent : '#64748B'} size={24} />
             <Text style={[s.bottomTabText, tab === 'profile' && s.bottomTabActive]}>Profile</Text>
           </TouchableOpacity>
         </View>
