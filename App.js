@@ -63,6 +63,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from './lib/audioService';
 import Svg, { Path } from 'react-native-svg';
 import { verifyHumanFace } from './lib/faceVerification';
+import ThemeBackground from './ThemeBackground';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_INSET = Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight || 20);
@@ -86,72 +87,6 @@ const C = {
   border: 'rgba(255,255,255,0.08)',
   borderLight: 'rgba(255,255,255,0.14)',
 };
-
-// ══════════════════════════════════════════════════
-//  DYNAMIC 3-THEME AMBIENT BACKGROUND SWITCHER
-// ══════════════════════════════════════════════════
-const THEME_IMAGES = [
-  require('./assets/theme-bg-1.webp'),
-  require('./assets/theme-bg-2.webp'),
-  require('./assets/theme-bg-3.webp'),
-];
-
-function DimmedAppBackground({ activeIndex = 0, children = null, style = null }) {
-  const anim0 = useRef(new Animated.Value(1)).current;
-  const anim1 = useRef(new Animated.Value(0)).current;
-  const anim2 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(anim0, {
-        toValue: activeIndex === 0 ? 0.38 : 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(anim1, {
-        toValue: activeIndex === 1 ? 0.38 : 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(anim2, {
-        toValue: activeIndex === 2 ? 0.38 : 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [activeIndex]);
-
-  return (
-    <View style={[{ flex: 1, width: '100%', height: '100%', backgroundColor: '#07090E' }, style]}>
-      {/* Theme 1: BTS Minimalist Brand */}
-      <Animated.Image
-        source={THEME_IMAGES[0]}
-        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', opacity: anim0 }]}
-        resizeMode="cover"
-      />
-      {/* Theme 2: Couple in Rain */}
-      <Animated.Image
-        source={THEME_IMAGES[1]}
-        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', opacity: anim1 }]}
-        resizeMode="cover"
-      />
-      {/* Theme 3: Cinematic Dip Kiss */}
-      <Animated.Image
-        source={THEME_IMAGES[2]}
-        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', opacity: anim2 }]}
-        resizeMode="cover"
-      />
-
-      {/* Luxury Obsidian Ambient Darkening Veil for Readability & Contrast */}
-      <View
-        style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(7, 9, 14, 0.70)' }]}
-        pointerEvents="none"
-      />
-
-      {children}
-    </View>
-  );
-}
 
 // ══════════════════════════════════════════════════
 //  1. HAPTIC FEEDBACK & TACTILE MICRO-INTERACTIONS
@@ -2937,7 +2872,7 @@ function ChatScreen({ match, userProfile, onClose }) {
 
   return (
     <Modal visible animationType="slide">
-      <DimmedAppBackground screen="matches">
+      <View style={{ flex: 1, backgroundColor: '#07090E' }}>
         <KeyboardAvoidingView style={{ flex: 1, paddingTop: TOP_INSET }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           {/* Chat Header */}
           <View style={s.chatHeader}>
@@ -3267,7 +3202,7 @@ function ChatScreen({ match, userProfile, onClose }) {
             )}
           </View>
         </KeyboardAvoidingView>
-      </DimmedAppBackground>
+      </View>
     </Modal>
   );
 }
@@ -4754,17 +4689,6 @@ export default function App() {
   const [celebrationMatch, setCelebrationMatch] = useState(null);
   const [dbProfiles, setDbProfiles] = useState(INITIAL_PROFILES);
   const [blockedIds, setBlockedIds] = useState([]);
-  const [themeIdx, setThemeIdx] = useState(0);
-
-  // Rotate theme automatically every 10 seconds (managed once globally at the root)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setThemeIdx((prev) => (prev + 1) % 3);
-    }, 10000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const nextTheme = () => setThemeIdx((prev) => (prev + 1) % 3);
 
   // Strict opposite-gender matching & age range filtering
   const userGender = userProfile?.gender || 'male';
@@ -4961,7 +4885,8 @@ export default function App() {
   };
 
   return (
-    <DimmedAppBackground activeIndex={themeIdx}>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+      <ThemeBackground />
       <StatusBar barStyle="light-content" />
 
       {loadingSession ? (
@@ -4975,7 +4900,7 @@ export default function App() {
           <ActivityIndicator color={C.accent} size="large" />
         </View>
       ) : !userProfile ? (
-        <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} onStepChange={nextTheme} />
+        <OnboardingScreen onComplete={(profile) => setUserProfile(profile)} />
       ) : (
         /* Full height column with explicit top/bottom padding from insets */
         <View style={{ flex: 1, width: '100%', height: '100%', paddingTop: TOP_INSET, paddingBottom: BOTTOM_INSET }}>
@@ -5139,7 +5064,7 @@ export default function App() {
           onClose={() => setChatMatch(null)} 
         />
       )}
-    </DimmedAppBackground>
+    </View>
   );
 }
 
