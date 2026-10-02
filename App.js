@@ -107,11 +107,11 @@ function DimmedAppBackground({ children = null, style = null }) {
 const triggerHaptic = (type = 'light') => {
   try {
     if (Platform.OS === 'ios' || Platform.OS === 'android') {
-      if (type === 'light') Vibration.vibrate(15);
-      else if (type === 'medium') Vibration.vibrate(35);
-      else if (type === 'heavy') Vibration.vibrate(60);
-      else if (type === 'success') Vibration.vibrate([0, 30, 40, 40]);
-      else if (type === 'match') Vibration.vibrate([0, 40, 40, 60, 40, 80]);
+      if (type === 'light') Vibration.vibrate(6);
+      else if (type === 'medium') Vibration.vibrate(12);
+      else if (type === 'heavy') Vibration.vibrate(18);
+      else if (type === 'success') Vibration.vibrate([0, 10, 20, 10]);
+      else if (type === 'match') Vibration.vibrate([0, 12, 30, 15]);
     }
   } catch (_) {}
 };
@@ -4927,7 +4927,7 @@ export default function App() {
 
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity onPress={() => { triggerHaptic('light'); setTab('discover'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity onPress={() => setTab('discover')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Image source={require('./assets/bts-official-logo.png')} style={{ width: 34, height: 34, resizeMode: 'contain' }} />
             <View>
               <Text style={s.brandTitleSm}>BEHIND THE SCENES</Text>
@@ -4935,7 +4935,7 @@ export default function App() {
             </View>
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity style={s.headerBtn} onPress={() => { triggerHaptic('light'); setTab('matches'); }}>
+            <TouchableOpacity style={s.headerBtn} onPress={() => setTab('matches')}>
               <Text style={{ fontSize: 16 }}>💬</Text>
               {activeMatches.some(m => m.unread) && <View style={s.headerBadge} />}
             </TouchableOpacity>
@@ -5024,31 +5024,31 @@ export default function App() {
 
         {/* Floating Bottom Navigation Bar */}
         <View style={[s.bottomBar, { bottom: BOTTOM_INSET + 8 }]}>
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('discover'); }}>
-            <NavDiscoverIcon color={tab === 'discover' ? C.accent : '#64748B'} size={24} />
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('discover')}>
+            <Text style={[s.bottomTabIcon, tab === 'discover' && { transform: [{ scale: 1.2 }] }]}>🔥</Text>
             <Text style={[s.bottomTabText, tab === 'discover' && s.bottomTabActive]}>Discover</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('date_drops'); }}>
-            <NavDateDropsIcon color={tab === 'date_drops' ? C.accent : '#64748B'} size={24} />
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('date_drops')}>
+            <Text style={[s.bottomTabIcon, tab === 'date_drops' && { transform: [{ scale: 1.2 }] }]}>🥂</Text>
             <Text style={[s.bottomTabText, tab === 'date_drops' && s.bottomTabActive]}>Date Drops</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('likes_you'); }}>
-            <NavLikesYouIcon color={tab === 'likes_you' ? C.accent : '#64748B'} size={24} />
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('likes_you')}>
+            <Text style={[s.bottomTabIcon, tab === 'likes_you' && { transform: [{ scale: 1.2 }] }]}>👁</Text>
             <Text style={[s.bottomTabText, tab === 'likes_you' && s.bottomTabActive]}>Likes You</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('matches'); }}>
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('matches')}>
             <View>
-              <NavMatchesIcon color={tab === 'matches' ? C.accent : '#64748B'} size={24} />
+              <Text style={[s.bottomTabIcon, tab === 'matches' && { transform: [{ scale: 1.2 }] }]}>💬</Text>
               {matches.some(m => m.unread) && <View style={s.bottomBadge} />}
             </View>
             <Text style={[s.bottomTabText, tab === 'matches' && s.bottomTabActive]}>Matches</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.bottomTabBtn} onPress={() => { triggerHaptic('light'); setTab('profile'); }}>
-            <NavProfileIcon color={tab === 'profile' ? C.accent : '#64748B'} size={24} />
+          <TouchableOpacity style={s.bottomTabBtn} onPress={() => setTab('profile')}>
+            <Text style={[s.bottomTabIcon, tab === 'profile' && { transform: [{ scale: 1.2 }] }]}>👤</Text>
             <Text style={[s.bottomTabText, tab === 'profile' && s.bottomTabActive]}>Profile</Text>
           </TouchableOpacity>
         </View>
