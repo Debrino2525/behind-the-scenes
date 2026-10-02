@@ -81,9 +81,12 @@ BEGIN
       AND p.id::TEXT NOT IN (
           SELECT s.target_id::TEXT FROM public.swipes s WHERE s.swiper_id::TEXT = p_user_id
       )
-      -- Exclude reported profiles
+      -- Exclude reported profiles by user ID or name
       AND p.id::TEXT NOT IN (
-          SELECT r.reported_id::TEXT FROM public.reports r WHERE r.reporter_id::TEXT = p_user_id AND r.reported_id IS NOT NULL
+          SELECT r.reported_user_id::TEXT FROM public.reports r WHERE r.reporter_id::TEXT = p_user_id AND r.reported_user_id IS NOT NULL
+      )
+      AND p.full_name NOT IN (
+          SELECT r.reported_user_name FROM public.reports r WHERE r.reporter_id::TEXT = p_user_id AND r.reported_user_name IS NOT NULL
       )
     ORDER BY p.verified DESC, p.created_at DESC
     LIMIT p_limit;
