@@ -2121,10 +2121,8 @@ function MatchesScreen({ matches, onSelectMatch, onBack }) {
 // ══════════════════════════════════════════════════
 //  CHAT MODAL
 // ══════════════════════════════════════════════════
-function ChatScreen({ match, onClose }) {
-  const [messages, setMessages] = useState([
-    { id: 1, sender: 'them', text: match.lastMessage || "Hey! Nice to connect. How's your week going?", time: '12:04 PM' }
-  ]);
+function ChatScreen({ match, userProfile, onClose }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [showIcebreakers, setShowIcebreakers] = useState(true);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
@@ -2139,17 +2137,64 @@ function ChatScreen({ match, onClose }) {
   const soundRef = useRef(null);
   const timerRef = useRef(null);
 
-  // Clean up audio on chat close
+  const currentUserId = userProfile?.id || 'current_user';
+  const matchId = match?.id || 'default_match';
+
+  // 1. Load initial chat messages from Supabase DB
   useEffect(() => {
+    let mounted = true;
+    getMessagesFromDb(matchId).then(dbMsgs => {
+      if (mounted && dbMsgs && dbMsgs.length > 0) {
+        setMessages(dbMsgs.map(m => ({
+          id: m.id,
+          sender: m.sender_id === currentUserId ? 'me' : 'them',
+          text: m.content,
+          isVoice: Boolean(m.audio_url),
+          audioUri: m.audio_url,
+          duration: m.duration || '0:15',
+          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        })));
+      } else if (mounted) {
+        setMessages([
+          { id: 1, sender: 'them', text: match.lastMessage || "Hey! Nice to connect. How's your week going?", time: 'Just now' }
+        ]);
+      }
+    });
+
+    // 2. Real-Time WebSocket Channel for Live Messaging
+    const channel = supabase
+      .channel(`chat_${matchId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `match_id=eq.${matchId}`
+      }, (payload) => {
+        const newMsg = payload.new;
+        if (newMsg && newMsg.sender_id !== currentUserId) {
+          setMessages(prev => {
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            return [...prev, {
+              id: newMsg.id,
+              sender: 'them',
+              text: newMsg.content,
+              isVoice: Boolean(newMsg.audio_url),
+              audioUri: newMsg.audio_url,
+              duration: newMsg.duration || '0:15',
+              time: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }];
+          });
+        }
+      })
+      .subscribe();
+
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      mounted = false;
+      supabase.removeChannel(channel);
+      if (soundRef.current) soundRef.current.unloadAsync().catch(() => {});
+      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [matchId, currentUserId]);
 
   const matchPhotos = Array.isArray(match.photos) && match.photos.length > 0
     ? match.photos
@@ -2159,24 +2204,36 @@ function ChatScreen({ match, onClose }) {
         'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80'
       ];
 
-  const send = (txt) => {
+  const send = async (txt) => {
     const content = txt || input;
     if (!content.trim()) return;
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setMessages(prev => [...prev, { id: Date.now(), sender: 'me', text: content, time: now }]);
+    const localId = Date.now();
+    
+    setMessages(prev => [...prev, { id: localId, sender: 'me', text: content, time: now }]);
     setInput('');
     setShowIcebreakers(false);
 
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        sender: 'them',
-        text: content.toLowerCase().includes('food') || content.toLowerCase().includes('jollof') || content.toLowerCase().includes('waakye') || content.toLowerCase().includes('kelewele')
-          ? "Say no more! If it has extra shito, I am already on my way."
-          : "Ah charlie! You have jokes! Are we doing Buka in Osu or somewhere quiet?",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
-    }, 1200);
+    // Persist to Supabase Database
+    await sendMessageToDb({
+      matchId,
+      senderId: currentUserId,
+      content
+    });
+
+    // Simulated reply for demo profiles if chatting with an AI single
+    if (typeof matchId === 'string' && matchId.startsWith('gh-') || matchId.startsWith('mu-') || matchId.startsWith('bw-') || matchId.startsWith('na-') || matchId.startsWith('ma-')) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          sender: 'them',
+          text: content.toLowerCase().includes('food') || content.toLowerCase().includes('jollof') || content.toLowerCase().includes('waakye') || content.toLowerCase().includes('kelewele')
+            ? "Say no more! If it has extra shito, I am already on my way."
+            : "Ah charlie! You have jokes! Are we doing Buka in Osu or somewhere quiet?",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }, 1200);
+    }
   };
 
   const handleStartVoiceRecording = async () => {
@@ -2225,11 +2282,12 @@ function ChatScreen({ match, onClose }) {
         const secs = Math.max(1, recordSeconds);
         const durationFormatted = `0:${secs < 10 ? '0' : ''}${secs}`;
         const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const localId = Date.now();
 
         setMessages(prev => [
           ...prev,
           {
-            id: Date.now(),
+            id: localId,
             sender: 'me',
             isVoice: true,
             duration: durationFormatted,
@@ -2239,18 +2297,28 @@ function ChatScreen({ match, onClose }) {
         ]);
         setShowIcebreakers(false);
 
-        // Simulated match audio reply
-        setTimeout(() => {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: Date.now() + 1,
-              sender: 'them',
-              text: "Loved your voice note! You have great energy. Let's definitely set up a date soon!",
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-          ]);
-        }, 2000);
+        // Upload to Cloud Storage & persist to Supabase
+        const cloudAudioUrl = await supabaseUploadVoiceNote(uri);
+        await sendMessageToDb({
+          matchId,
+          senderId: currentUserId,
+          content: '🎙 Voice Note',
+          audioUrl: cloudAudioUrl || uri
+        });
+
+        if (typeof matchId === 'string' && (matchId.startsWith('gh-') || matchId.startsWith('mu-') || matchId.startsWith('bw-') || matchId.startsWith('na-') || matchId.startsWith('ma-'))) {
+          setTimeout(() => {
+            setMessages(prev => [
+              ...prev,
+              {
+                id: Date.now() + 1,
+                sender: 'them',
+                text: "Loved your voice note! You have great energy. Let's definitely set up a date soon!",
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
+            ]);
+          }, 2000);
+        }
       }
     } catch (err) {
       console.warn('Voice record stop error:', err);
@@ -4442,7 +4510,11 @@ export default function App() {
 
       {/* Chat Modal */}
       {chatMatch && (
-        <ChatScreen match={chatMatch} onClose={() => setChatMatch(null)} />
+        <ChatScreen 
+          match={chatMatch} 
+          userProfile={userProfile}
+          onClose={() => setChatMatch(null)} 
+        />
       )}
     </DimmedAppBackground>
   );
