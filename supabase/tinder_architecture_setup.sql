@@ -79,11 +79,11 @@ BEGIN
       AND p.age BETWEEN p_min_age AND p_max_age
       -- Exclude profiles already swiped by this user
       AND p.id::TEXT NOT IN (
-          SELECT s.target_id FROM public.swipes s WHERE s.swiper_id = p_user_id
+          SELECT s.target_id::TEXT FROM public.swipes s WHERE s.swiper_id::TEXT = p_user_id
       )
       -- Exclude reported profiles
       AND p.id::TEXT NOT IN (
-          SELECT r.reported_id FROM public.reports r WHERE r.reporter_id = p_user_id AND r.reported_id IS NOT NULL
+          SELECT r.reported_id::TEXT FROM public.reports r WHERE r.reporter_id::TEXT = p_user_id AND r.reported_id IS NOT NULL
       )
     ORDER BY p.verified DESC, p.created_at DESC
     LIMIT p_limit;
