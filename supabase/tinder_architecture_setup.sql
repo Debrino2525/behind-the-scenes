@@ -59,6 +59,9 @@ EXECUTE FUNCTION handle_mutual_match();
 
 -- 6. TINDER-STYLE DISCOVERY ENGINE RPC FUNCTION
 -- Returns filtered candidate cards excluding self, already swiped, and reported users
+DROP FUNCTION IF EXISTS public.get_discovery_feed(UUID, TEXT, INT, INT, INT);
+DROP FUNCTION IF EXISTS public.get_discovery_feed(TEXT, TEXT, INT, INT, INT);
+
 CREATE OR REPLACE FUNCTION get_discovery_feed(
     p_user_id TEXT,
     p_target_gender TEXT,
