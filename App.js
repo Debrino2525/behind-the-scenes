@@ -88,17 +88,89 @@ const C = {
 };
 
 // ══════════════════════════════════════════════════
-//  CLEAN SOLID APP BACKGROUND CONTAINER
+//  DYNAMIC 3-THEME AMBIENT BACKGROUND SWITCHER
 // ══════════════════════════════════════════════════
+const THEME_IMAGES = [
+  require('./assets/theme-bg-1.webp'),
+  require('./assets/theme-bg-2.webp'),
+  require('./assets/theme-bg-3.webp'),
+];
+
 function DimmedAppBackground({ children = null, style = null }) {
-  if (children) {
-    return (
-      <View style={[{ flex: 1, width: '100%', height: '100%', backgroundColor: '#07090E' }, style]}>
-        {children}
-      </View>
-    );
-  }
-  return <View style={[{ flex: 1, backgroundColor: '#07090E' }, style]} />;
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [nextIdx, setNextIdx] = useState(1);
+  const crossFade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const incoming = (currentIdx + 1) % THEME_IMAGES.length;
+      setNextIdx(incoming);
+
+      Animated.timing(crossFade, {
+        toValue: 1,
+        duration: 1800,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setCurrentIdx(incoming);
+          crossFade.setValue(0);
+        }
+      });
+    }, 20000); // Cross-fades smoothly every 20 seconds
+
+    return () => clearInterval(interval);
+  }, [currentIdx]);
+
+  return (
+    <View style={[{ flex: 1, width: '100%', height: '100%', backgroundColor: '#07090E' }, style]}>
+      {/* Base Layer Theme Image */}
+      <Animated.Image
+        source={THEME_IMAGES[currentIdx]}
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            width: '100%',
+            height: '100%',
+            opacity: crossFade.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.36, 0.0],
+            }),
+          },
+        ]}
+        resizeMode="cover"
+      />
+
+      {/* Next Cross-fading Theme Image */}
+      <Animated.Image
+        source={THEME_IMAGES[nextIdx]}
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            width: '100%',
+            height: '100%',
+            opacity: crossFade.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.0, 0.36],
+            }),
+          },
+        ]}
+        resizeMode="cover"
+      />
+
+      {/* Luxury Obsidian Ambient Darkening Veil for Readability & Contrast */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            backgroundColor: 'rgba(7, 9, 14, 0.70)',
+          },
+        ]}
+        pointerEvents="none"
+      />
+
+      {children}
+    </View>
+  );
 }
 
 // ══════════════════════════════════════════════════
