@@ -661,7 +661,7 @@ function OnboardingScreen({ onComplete }) {
 
   // VERIFY 6-DIGIT EMAIL CODE
   const handleVerifyOtp = async () => {
-    const cleanCode = otpCode.trim();
+    const cleanCode = otpCode.trim().replace(/[^a-zA-Z0-9]/g, '');
     if (!cleanCode || cleanCode.length < 6) {
       setError('Please enter the full 6-digit code sent to your email.');
       return;
@@ -676,7 +676,7 @@ function OnboardingScreen({ onComplete }) {
       setStep(3); // Advance to Age Check
     } catch (err) {
       console.warn('[Supabase Verify OTP]', err);
-      setError('Invalid or expired code. Please re-enter or tap Resend.');
+      setError(err?.message || 'Invalid or expired code. Please check for the latest email or tap Resend.');
     } finally {
       setIsVerifyingCode(false);
     }
