@@ -512,6 +512,11 @@ function OnboardingScreen({ onComplete }) {
     }
   }, [countdown]);
 
+  // Clear any residual error messages whenever transitioning between onboarding steps
+  useEffect(() => {
+    setError('');
+  }, [step]);
+
   // Check for active Supabase user and restored database profile
   useEffect(() => {
     async function checkExistingUser() {
