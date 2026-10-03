@@ -25,6 +25,7 @@ import {
   Keyboard,
   PanResponder,
   Vibration,
+  Linking,
 } from 'react-native';
 import { INITIAL_PROFILES, INITIAL_MATCHES, INITIAL_DATE_DROPS, INITIAL_LIKES_YOU } from './data/mockProfiles';
 import { 
@@ -513,6 +514,28 @@ function IconVerifiedGold({ size = 15 }) {
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M12 2L14.7 4.86L18.66 4.77L19.86 8.55L23.44 10.26L22.61 14.15L24 17.88L20.35 19.34L18.42 22.81L14.5 22.25L12 25L9.5 22.25L5.58 22.81L3.65 19.34L0 17.88L1.39 14.15L0.56 10.26L4.14 8.55L5.34 4.77L9.3 4.86L12 2Z" fill="#FFB800" />
       <Path d="M8.5 12.5L11 15L15.5 9.5" stroke="#07090E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function IconGreenCheckCircle({ size = 80, strokeWidth = 5.5, color = '#10B981' }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      {/* Circle Arc with opening at top-right for extended checkmark wing */}
+      <Path
+        d="M 88 32 A 42 42 0 1 1 77 18"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+      {/* Dynamic checkmark extending slightly beyond the circle edge */}
+      <Path
+        d="M 32 43 L 48 59 L 92 15"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
@@ -3623,12 +3646,285 @@ function ChatScreen({ match, userProfile, onClose, onlineUserIds = new Set() }) 
 }
 
 // ══════════════════════════════════════════════════
+//  DATE DROPS MEDIA GALLERY (MULTI-PHOTO SLIDER)
+// ══════════════════════════════════════════════════
+function DateDropMediaGallery({ photos, defaultPhoto }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const list = Array.isArray(photos) && photos.length > 0 ? photos : (defaultPhoto ? [defaultPhoto] : []);
+
+  if (list.length === 0) return null;
+
+  if (list.length === 1) {
+    return (
+      <View style={{ width: '100%', height: 260, backgroundColor: '#10131B' }}>
+        <Image source={{ uri: list[0] }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+      </View>
+    );
+  }
+
+  const cardWidth = SCREEN_WIDTH - 32;
+
+  return (
+    <View style={{ width: '100%', height: 270, backgroundColor: '#10131B', position: 'relative' }}>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(e) => {
+          const offsetX = e.nativeEvent.contentOffset.x;
+          const page = Math.round(offsetX / cardWidth);
+          setActiveIdx(page);
+        }}
+      >
+        {list.map((uri, idx) => (
+          <View key={idx} style={{ width: cardWidth, height: 270 }}>
+            <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Floating Counter Badge */}
+      <View style={{
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        backgroundColor: 'rgba(15, 23, 42, 0.78)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.18)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5
+      }}>
+        <Text style={{ color: '#F8FAFC', fontSize: 11, fontWeight: '800' }}>
+          📸 {activeIdx + 1}/{list.length}
+        </Text>
+      </View>
+
+      {/* Indicator Dots */}
+      <View style={{
+        position: 'absolute',
+        bottom: 10,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6
+      }}>
+        {list.map((_, dotIdx) => (
+          <View
+            key={dotIdx}
+            style={{
+              width: dotIdx === activeIdx ? 18 : 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: dotIdx === activeIdx ? '#10B981' : 'rgba(255,255,255,0.38)'
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  DATE DROP SUCCESS MODAL (GREEN CHECKMARK CELEBRATION)
+// ══════════════════════════════════════════════════
+function DateDropSuccessModal({ visible, drop, onClose }) {
+  const scaleAnim = useRef(new Animated.Value(0.6)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 6,
+          tension: 70,
+          useNativeDriver: true
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true
+        })
+      ]).start();
+    } else {
+      scaleAnim.setValue(0.6);
+      opacityAnim.setValue(0);
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const photoList = Array.isArray(drop?.photos) && drop.photos.length > 0 
+    ? drop.photos 
+    : (drop?.photo ? [drop.photo] : []);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(4, 7, 13, 0.88)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24
+      }}>
+        <Animated.View style={{
+          width: '100%',
+          maxWidth: 360,
+          backgroundColor: '#0F131D',
+          borderRadius: 28,
+          borderWidth: 1.5,
+          borderColor: 'rgba(16, 185, 129, 0.4)',
+          padding: 26,
+          alignItems: 'center',
+          shadowColor: '#10B981',
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.35,
+          shadowRadius: 30,
+          elevation: 14,
+          transform: [{ scale: scaleAnim }],
+          opacity: opacityAnim
+        }}>
+          {/* Glowing Green Icon Container with outer soft aura */}
+          <View style={{
+            width: 114,
+            height: 114,
+            borderRadius: 57,
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            borderWidth: 1.5,
+            borderColor: 'rgba(16, 185, 129, 0.35)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 16,
+            shadowColor: '#10B981',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.6,
+            shadowRadius: 18
+          }}>
+            <IconGreenCheckCircle size={86} strokeWidth={5.5} color="#10B981" />
+          </View>
+
+          {/* Status Badge */}
+          <View style={{
+            backgroundColor: 'rgba(16, 185, 129, 0.16)',
+            borderWidth: 1,
+            borderColor: 'rgba(16, 185, 129, 0.4)',
+            paddingHorizontal: 12,
+            paddingVertical: 5,
+            borderRadius: 18,
+            marginBottom: 12
+          }}>
+            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '900', letterSpacing: 1.2 }}>
+              ✓ DATE VERIFIED & DROPPED
+            </Text>
+          </View>
+
+          {/* Title */}
+          <Text style={{
+            color: '#FFFFFF',
+            fontSize: 22,
+            fontWeight: '900',
+            textAlign: 'center',
+            marginBottom: 6
+          }}>
+            Date Story Is Live! 🎉
+          </Text>
+
+          <Text style={{
+            color: '#94A3B8',
+            fontSize: 13,
+            lineHeight: 19,
+            textAlign: 'center',
+            marginBottom: 18
+          }}>
+            Your authentic connection, review, and {photoList.length} date photos have been published to the community feed!
+          </Text>
+
+          {/* 3-Photo Preview Row */}
+          {photoList.length > 0 && (
+            <View style={{
+              flexDirection: 'row',
+              gap: 8,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 20,
+              padding: 6,
+              backgroundColor: 'rgba(255,255,255,0.03)',
+              borderRadius: 18,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.08)'
+            }}>
+              {photoList.slice(0, 3).map((uri, idx) => (
+                <View key={idx} style={{ position: 'relative' }}>
+                  <Image
+                    source={{ uri }}
+                    style={{
+                      width: 76,
+                      height: 76,
+                      borderRadius: 14,
+                      backgroundColor: '#1E293B'
+                    }}
+                  />
+                  {idx === 2 && photoList.length > 3 && (
+                    <View style={{
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: 'rgba(0,0,0,0.65)',
+                      borderRadius: 14,
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}>
+                      <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>
+                        +{photoList.length - 3}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Primary Action Button */}
+          <TouchableOpacity
+            style={{
+              width: '100%',
+              backgroundColor: '#10B981',
+              paddingVertical: 14,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#10B981',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              elevation: 4
+            }}
+            onPress={onClose}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>
+              Awesome, View in Feed ✨
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  DATE DROPS SCREEN (REAL DATES FEED)
 // ══════════════════════════════════════════════════
 function DateDropsScreen({ userProfile }) {
   const [drops, setDrops] = useState(() => 
     INITIAL_DATE_DROPS.map((d, idx) => ({
       ...d,
+      photos: d.photos || (d.photo ? [d.photo] : []),
       comments: idx === 0 
         ? [
             { id: 'c1', author: 'Ama Pokua', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=300&q=80', text: 'Buka waakye with fried fish is an undefeated first date! So happy for you two! 🇬🇭✨', time: '1h ago' },
@@ -3642,10 +3938,13 @@ function DateDropsScreen({ userProfile }) {
 
   // Upload Date Drop Modal State
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastCreatedDrop, setLastCreatedDrop] = useState(null);
+
   const [newCouple, setNewCouple] = useState(`${userProfile?.name || 'Me'} & Match`);
   const [newVenue, setNewVenue] = useState('');
   const [newCaption, setNewCaption] = useState('');
-  const [newPhoto, setNewPhoto] = useState(null);
+  const [newPhotos, setNewPhotos] = useState([]); // Array of at least 3 photos
   const [newVibe, setNewVibe] = useState('⭐⭐⭐⭐⭐ Pure Chemistry');
 
   // Comments Modal State
@@ -3663,6 +3962,7 @@ function DateDropsScreen({ userProfile }) {
               couple: d.couple_title || d.couple,
               matchTag: d.match_tag || d.matchTag || 'BTS Match',
               photo: d.photo_url || d.photo,
+              photos: d.photos || (d.photo_urls ? d.photo_urls : (d.photo_url ? [d.photo_url] : (d.photo ? [d.photo] : []))),
               venue: d.venue,
               caption: d.caption,
               vibeRating: d.vibe_rating || d.vibeRating || '⭐⭐⭐⭐⭐ Pure Chemistry',
@@ -3686,14 +3986,20 @@ function DateDropsScreen({ userProfile }) {
 
   const handlePickGallery = async () => {
     try {
+      const remaining = 6 - newPhotos.length;
+      if (remaining <= 0) {
+        Alert.alert('Maximum Photos', 'You have already added 6 photos (maximum reached).');
+        return;
+      }
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsMultipleSelection: true,
+        selectionLimit: remaining,
         quality: 0.8,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
-        setNewPhoto(res.assets[0].uri);
+        const uris = res.assets.map(a => a.uri);
+        setNewPhotos(prev => [...prev, ...uris].slice(0, 6));
       }
     } catch (e) {
       Alert.alert('Photo Picker', 'Could not open image picker.');
@@ -3701,10 +4007,14 @@ function DateDropsScreen({ userProfile }) {
   };
 
   const handlePickCamera = async () => {
+    if (newPhotos.length >= 6) {
+      Alert.alert('Maximum Photos', 'You have already added 6 photos (maximum reached).');
+      return;
+    }
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Camera Permission', 'Please allow camera access to take a date selfie.');
+        Alert.alert('Camera Permission', 'Please allow camera access to take a date photo.');
         return;
       }
       const res = await ImagePicker.launchCameraAsync({
@@ -3713,16 +4023,23 @@ function DateDropsScreen({ userProfile }) {
         quality: 0.8,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
-        setNewPhoto(res.assets[0].uri);
+        setNewPhotos(prev => [...prev, res.assets[0].uri].slice(0, 6));
       }
     } catch (e) {
       Alert.alert('Camera', 'Could not open camera.');
     }
   };
 
+  const handleRemovePhoto = (removeIdx) => {
+    setNewPhotos(prev => prev.filter((_, idx) => idx !== removeIdx));
+  };
+
   const handleSubmitDateDrop = () => {
-    if (!newPhoto) {
-      Alert.alert('Photo Required', 'Please attach a photo or selfie of your date moment!');
+    if (newPhotos.length < 3) {
+      Alert.alert(
+        'At Least 3 Photos Required 📸',
+        `Please attach at least 3 photos of your date (you currently have ${newPhotos.length} of 3).\n\nTip: Include a couple selfie, the venue vibe, and your delicious food!`
+      );
       return;
     }
     if (!newCaption.trim()) {
@@ -3734,7 +4051,8 @@ function DateDropsScreen({ userProfile }) {
       id: `drop-${Date.now()}`,
       couple: newCouple.trim() || `${userProfile?.name || 'Me'} & Match`,
       matchTag: 'Matched on Behind The Scenes • Verified Date',
-      photo: newPhoto,
+      photo: newPhotos[0],
+      photos: newPhotos,
       venue: newVenue.trim() || 'Romantic Secret Spot',
       caption: newCaption.trim(),
       vibeRating: newVibe,
@@ -3745,24 +4063,26 @@ function DateDropsScreen({ userProfile }) {
     };
 
     setDrops(prev => [createdDrop, ...prev]);
+    setLastCreatedDrop(createdDrop);
     setShowUploadModal(false);
+    setShowSuccessModal(true);
+
+    // Reset inputs
     setNewCaption('');
     setNewVenue('');
-    setNewPhoto(null);
+    setNewPhotos([]);
 
     insertDateDropInDb({
       user_id: userProfile?.id || null,
       couple_title: createdDrop.couple,
       match_tag: createdDrop.matchTag,
-      photo_url: createdDrop.photo || 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80',
+      photo_url: createdDrop.photo,
       venue: createdDrop.venue,
       caption: createdDrop.caption,
       vibe_rating: createdDrop.vibeRating,
       likes_count: 1,
       cheers_count: 1
     }).catch(e => console.warn('[Supabase Insert DateDrop]', e));
-
-    Alert.alert('🎉 Date Dropped!', 'Your real date story has been posted to the BTS community feed!');
   };
 
   const handleAddComment = () => {
@@ -3835,8 +4155,8 @@ function DateDropsScreen({ userProfile }) {
                 <Text style={[s.bodyTiny, { color: C.textMuted }]}>{item.timestamp}</Text>
               </View>
 
-              {/* Photo */}
-              <Image source={{ uri: item.photo }} style={{ width: '100%', height: 240, backgroundColor: '#10131B' }} />
+              {/* Multi-Photo Carousel (supports at least 3 photos) */}
+              <DateDropMediaGallery photos={item.photos} defaultPhoto={item.photo} />
 
               {/* Card Body */}
               <View style={{ padding: 14 }}>
@@ -3916,39 +4236,103 @@ function DateDropsScreen({ userProfile }) {
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 18 }}>
-              {/* Photo Upload Area */}
-              <Text style={{ color: C.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                Date Photo / Food / Moment *
-              </Text>
-              {newPhoto ? (
-                <View style={{ position: 'relative', width: '100%', height: 200, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
-                  <Image source={{ uri: newPhoto }} style={{ width: '100%', height: '100%' }} />
-                  <TouchableOpacity 
-                    onPress={handlePickGallery}
-                    style={{ position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}
-                  >
-                    <Text style={{ color: C.accent, fontSize: 11, fontWeight: '800' }}>Change Photo</Text>
-                  </TouchableOpacity>
+              {/* Photo Upload Area with 3-photo min indicator */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ color: C.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Date Photos (Min 3 Required) *
+                </Text>
+                <View style={{
+                  backgroundColor: newPhotos.length >= 3 ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 184, 0, 0.18)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: newPhotos.length >= 3 ? '#10B981' : C.accent
+                }}>
+                  <Text style={{
+                    color: newPhotos.length >= 3 ? '#10B981' : C.accent,
+                    fontSize: 10,
+                    fontWeight: '900'
+                  }}>
+                    {newPhotos.length >= 3 ? `✓ ${newPhotos.length} Added (Ready)` : `${newPhotos.length} / 3 Required`}
+                  </Text>
                 </View>
-              ) : (
-                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+              </View>
+
+              {/* Uploaded Photos Thumbnails Scroll */}
+              {newPhotos.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', gap: 10, paddingVertical: 4 }}>
+                    {newPhotos.map((uri, idx) => (
+                      <View key={idx} style={{ position: 'relative', width: 105, height: 115, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}>
+                        <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
+                        <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>#{idx + 1}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleRemovePhoto(idx)}
+                          style={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            backgroundColor: 'rgba(220, 38, 38, 0.9)',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 11 }}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    {newPhotos.length < 6 && (
+                      <TouchableOpacity
+                        onPress={handlePickGallery}
+                        style={{
+                          width: 85,
+                          height: 115,
+                          borderRadius: 14,
+                          borderWidth: 1.5,
+                          borderStyle: 'dashed',
+                          borderColor: 'rgba(255, 184, 0, 0.4)',
+                          backgroundColor: 'rgba(255,255,255,0.03)',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          padding: 8
+                        }}
+                      >
+                        <Text style={{ fontSize: 20, marginBottom: 4 }}>➕</Text>
+                        <Text style={{ color: C.accent, fontSize: 10, fontWeight: '800', textAlign: 'center' }}>Add Photo</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </ScrollView>
+              )}
+
+              {/* Action Buttons to Add Photos (Gallery multi-select & Camera) */}
+              {newPhotos.length < 6 && (
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
                   <TouchableOpacity 
                     onPress={handlePickGallery} 
                     style={{
                       flex: 1,
                       backgroundColor: 'rgba(255,255,255,0.04)',
                       borderWidth: 1.5,
-                      borderColor: 'rgba(255,184,0,0.3)',
+                      borderColor: newPhotos.length >= 3 ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255,184,0,0.3)',
                       borderStyle: 'dashed',
                       borderRadius: 16,
-                      paddingVertical: 22,
+                      paddingVertical: newPhotos.length > 0 ? 12 : 20,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}
                   >
-                    <Text style={{ fontSize: 24, marginBottom: 6 }}>🖼️</Text>
-                    <Text style={{ color: C.text, fontWeight: '800', fontSize: 12 }}>Choose from Photos</Text>
-                    <Text style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>System Photo Picker</Text>
+                    <Text style={{ fontSize: 22, marginBottom: 4 }}>🖼️</Text>
+                    <Text style={{ color: C.text, fontWeight: '800', fontSize: 12 }}>
+                      {newPhotos.length > 0 ? '+ Gallery (Multi)' : 'Choose From Photos'}
+                    </Text>
+                    <Text style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>Select up to {6 - newPhotos.length} photos</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity 
@@ -3960,15 +4344,31 @@ function DateDropsScreen({ userProfile }) {
                       borderColor: 'rgba(255,255,255,0.15)',
                       borderStyle: 'dashed',
                       borderRadius: 16,
-                      paddingVertical: 22,
+                      paddingVertical: newPhotos.length > 0 ? 12 : 20,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}
                   >
-                    <Text style={{ fontSize: 24, marginBottom: 6 }}>📸</Text>
-                    <Text style={{ color: C.text, fontWeight: '800', fontSize: 12 }}>Snap Date Selfie</Text>
-                    <Text style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>Live Camera</Text>
+                    <Text style={{ fontSize: 22, marginBottom: 4 }}>📸</Text>
+                    <Text style={{ color: C.text, fontWeight: '800', fontSize: 12 }}>Snap Date Camera</Text>
+                    <Text style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>Live camera photo</Text>
                   </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Helper note when under 3 pictures */}
+              {newPhotos.length < 3 && (
+                <View style={{
+                  backgroundColor: 'rgba(255,184,0,0.08)',
+                  borderRadius: 12,
+                  padding: 10,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,184,0,0.2)',
+                  marginBottom: 14
+                }}>
+                  <Text style={{ color: C.accent, fontSize: 11, fontWeight: '700', lineHeight: 16 }}>
+                    💡 Please add at least 3 photos (e.g. couple selfie, food/drinks, venue ambiance) to drop your date story!
+                  </Text>
                 </View>
               )}
 
@@ -4075,7 +4475,7 @@ function DateDropsScreen({ userProfile }) {
               <TouchableOpacity
                 onPress={handleSubmitDateDrop}
                 style={{
-                  backgroundColor: C.accent,
+                  backgroundColor: newPhotos.length >= 3 ? C.accent : 'rgba(255,184,0,0.6)',
                   paddingVertical: 15,
                   borderRadius: 16,
                   alignItems: 'center',
@@ -4083,7 +4483,9 @@ function DateDropsScreen({ userProfile }) {
                   elevation: 3
                 }}
               >
-                <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>Drop Date To Feed 🚀</Text>
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>
+                  {newPhotos.length >= 3 ? 'Drop Date To Feed 🚀' : `Add ${3 - newPhotos.length} More Photo${3 - newPhotos.length > 1 ? 's' : ''} to Drop`}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -4177,6 +4579,15 @@ function DateDropsScreen({ userProfile }) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ───────────────────────────────────────────── */}
+      {/* 3. SUCCESS / CELEBRATION MODAL WITH GREEN CHECK */}
+      {/* ───────────────────────────────────────────── */}
+      <DateDropSuccessModal
+        visible={showSuccessModal}
+        drop={lastCreatedDrop}
+        onClose={() => setShowSuccessModal(false)}
+      />
     </View>
   );
 }
@@ -5071,6 +5482,16 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout, onDeleteAccount
       </TouchableOpacity>
 
       <TouchableOpacity
+        style={{ width: '100%', alignItems: 'center', paddingVertical: 10, marginBottom: 6 }}
+        onPress={() => {
+          Linking.openURL('mailto:behindthescenes@sisters-haven.com?subject=BTS%20App%20Support%20%26%20Feedback');
+        }}
+      >
+        <Text style={{ color: C.accent, fontWeight: '700', fontSize: 13 }}>💬 Contact Support & Feedback</Text>
+        <Text style={{ color: C.textMuted, fontSize: 11, marginTop: 2 }}>behindthescenes@sisters-haven.com</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={{ width: '100%', alignItems: 'center', paddingVertical: 10 }}
         onPress={() => {
           Alert.alert(
@@ -5371,7 +5792,7 @@ export default function App() {
               onPress={() => {
                 Alert.alert(
                   'Safety & Community Center',
-                  '• ZERO TOLERANCE: Behind The Scenes enforces strict zero tolerance for objectionable content, harassment, or abusive behavior. Violators are banned immediately within 24 hours.\n\n• BLOCK & REPORT: Tap "Report Profile" anytime to instantly block and report suspicious accounts.\n\n• PRIVACY & BIOMETRICS: Facial scans are processed on-device for liveness verification and never sold to third parties.\n\n• SUPPORT & EULA: safety@behindthescenes.app',
+                  '• ZERO TOLERANCE: Behind The Scenes enforces strict zero tolerance for objectionable content, harassment, or abusive behavior. Violators are banned immediately within 24 hours.\n\n• BLOCK & REPORT: Tap "Report Profile" anytime to instantly block and report suspicious accounts.\n\n• PRIVACY & BIOMETRICS: Facial scans are processed on-device for liveness verification and never sold to third parties.\n\n• SUPPORT & EULA: behindthescenes@sisters-haven.com',
                   [{ text: 'I Understand' }]
                 );
               }}

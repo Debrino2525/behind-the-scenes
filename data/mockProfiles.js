@@ -522,6 +522,11 @@ export const INITIAL_DATE_DROPS = [
     couple: "Nana Ama & Kweku",
     matchTag: "Matched on BTS • 3 weeks ago",
     photo: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=900&q=80"
+    ],
     venue: "Buka Restaurant, Osu (Accra)",
     caption: "He promised authentic waakye with all the works if I agreed to meet in Osu... and charlie he delivered! 10/10 date vibes! 🇬🇭✨",
     vibeRating: "⭐⭐⭐⭐⭐ Pure Chemistry",
@@ -535,6 +540,11 @@ export const INITIAL_DATE_DROPS = [
     couple: "Priya & Yannick",
     matchTag: "Matched on BTS • 1 month ago",
     photo: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=900&q=80"
+    ],
     venue: "Le Morne Beach Sunset, Mauritius",
     caption: "First official date outside our research labs: Roti chaud roadside, acoustic guitar, and unreal sunset. He dances Sega! 🇲🇺🌊",
     vibeRating: "⭐⭐⭐⭐⭐ Magical Energy",
