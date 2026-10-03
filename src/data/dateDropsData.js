@@ -4,6 +4,11 @@ export const INITIAL_DATE_DROPS = [
     couple: "Nana Ama & Kweku",
     matchTag: "Matched on BTS • 3 weeks ago",
     photo: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=900&q=80"
+    ],
     venue: "Buka Restaurant, Osu (Accra)",
     venueCategory: "Traditional Ghanaian & African Dining",
     caption: "He promised authentic waakye with all the works if I agreed to meet in Osu... and charlie he delivered! 10/10 date vibes. We talked until the staff were packing chairs! 🇬🇭✨",
@@ -23,6 +28,11 @@ export const INITIAL_DATE_DROPS = [
     couple: "Priya & Yannick",
     matchTag: "Matched on BTS • 1 month ago",
     photo: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=900&q=80"
+    ],
     venue: "Le Morne Beach Sunset, Mauritius",
     venueCategory: "Sunset Picnic & Sega Vibes",
     caption: "First official date outside our research labs: Roti chaud from the roadside, acoustic guitar, and the most unreal Mauritius sunset. He actually knows how to dance Sega! 🇲🇺🌊",
@@ -41,6 +51,11 @@ export const INITIAL_DATE_DROPS = [
     couple: "Kelebogile & Tebogo",
     matchTag: "Matched on BTS • 2 weeks ago",
     photo: "https://images.unsplash.com/photo-1516426122078-c23e76b4f3e7?auto=format&fit=crop&w=900&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1516426122078-c23e76b4f3e7?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=900&q=80"
+    ],
     venue: "Bull & Bush, Gaborone (Botswana)",
     venueCategory: "Live Music & Braai",
     caption: "Braai night turned into an impromptu amapiano dance battle in Block 8. Still laughing at his footwork. Next stop: Okavango safari! 🇧🇼🔥",
