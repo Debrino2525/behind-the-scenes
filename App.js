@@ -35,6 +35,8 @@ import {
   supabaseSignUpWithEmail,
   supabaseSendOtp,
   supabaseVerifyOtp,
+  supabaseResetPasswordForEmail,
+  supabaseUpdatePassword,
   supabaseGetCurrentUser,
   supabaseGetProfile,
   supabaseSaveProfile,
@@ -648,11 +650,13 @@ function OnboardingScreen({ onComplete, onStepChange }) {
   const [livenessConfidence, setLivenessConfidence] = useState(98.4);
 
   // Email OTP Authentication States
-  const [authSubStep, setAuthSubStep] = useState('input'); // 'input' | 'otp'
+  const [authSubStep, setAuthSubStep] = useState('input'); // 'input' | 'otp' | 'forgot_password' | 'reset_password'
   const [otpCode, setOtpCode] = useState('');
   const [otpUserId, setOtpUserId] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   const [authMode, setAuthMode] = useState('signup'); // 'signup' | 'signin'
@@ -713,7 +717,7 @@ function OnboardingScreen({ onComplete, onStepChange }) {
   const handleBack = () => {
     Keyboard.dismiss();
     setError('');
-    if (step === 2 && authSubStep === 'otp') {
+    if (step === 2 && (authSubStep === 'otp' || authSubStep === 'forgot_password' || authSubStep === 'reset_password')) {
       setAuthSubStep('input');
       return;
     }
@@ -919,6 +923,76 @@ function OnboardingScreen({ onComplete, onStepChange }) {
       }
     } finally {
       setIsVerifyingCode(false);
+    }
+  };
+
+  // REQUEST PASSWORD RESET CODE
+  const handleSendPasswordResetCode = async () => {
+    Keyboard.dismiss();
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setError('Please enter your registered email address.');
+      return;
+    }
+    setIsSendingCode(true);
+    setError('');
+    setOtpCode('');
+    setNewPassword('');
+    try {
+      await supabaseResetPasswordForEmail(cleanEmail);
+      setAuthSubStep('reset_password');
+      setCountdown(45);
+      Alert.alert('Reset Code Sent ✉️', `A 6-digit password reset code was sent to ${cleanEmail}. Please check your inbox and spam folder.`);
+    } catch (err) {
+      console.warn('[Password Reset Error]', err);
+      setError(err?.message || 'Could not send reset code. Please check your email.');
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  // VERIFY RESET CODE & UPDATE PASSWORD
+  const handleConfirmPasswordReset = async () => {
+    Keyboard.dismiss();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanCode = otpCode.trim().replace(/[^a-zA-Z0-9]/g, '');
+    if (!cleanCode || cleanCode.length < 6) {
+      setError('Please enter the 6-digit verification code sent to your email.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setError('New password must be at least 8 characters.');
+      return;
+    }
+    setIsResettingPassword(true);
+    setError('');
+    try {
+      const user = await supabaseVerifyOtp(cleanEmail, cleanCode);
+      await supabaseUpdatePassword(newPassword);
+      setPassword(newPassword);
+      
+      // Load user profile if exists
+      if (user && user.id) {
+        const existingProfile = await supabaseGetProfile(user.id);
+        if (existingProfile && existingProfile.name) {
+          await saveLocalProfile(existingProfile);
+          onComplete(existingProfile);
+          return;
+        }
+      }
+      Alert.alert('Password Updated! 🔒', 'Your new password has been set. Welcome to Behind The Scenes!');
+      setStep(3);
+    } catch (err) {
+      console.warn('[Confirm Password Reset Error]', err);
+      const errMsg = err?.message || '';
+      if (errMsg.toLowerCase().includes('expired') || errMsg.toLowerCase().includes('invalid')) {
+        setError('This reset code has expired or is invalid. Please request a fresh code.');
+      } else {
+        setError(errMsg || 'Could not reset password.');
+      }
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -1414,6 +1488,153 @@ function OnboardingScreen({ onComplete, onStepChange }) {
       );
     }
 
+    if (authSubStep === 'forgot_password') {
+      return (
+        <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
+          <StepHeader currentStep={1} totalSteps={6} onBack={handleBack} />
+
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <ScrollView 
+              contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                <View style={{ width: 68, height: 68, borderRadius: 22, backgroundColor: 'rgba(255,184,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,184,0,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
+                  <Text style={{ fontSize: 32 }}>🔒</Text>
+                </View>
+                <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Reset Your Password</Text>
+                <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }]}>
+                  Enter the email address linked to your account. We'll send you a 6-digit code to set a new password.
+                </Text>
+              </View>
+
+              {/* ERROR ALERT BANNER */}
+              {error ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(224,54,56,0.15)', borderWidth: 1, borderColor: C.red, marginBottom: 16 }}>
+                  <IconAlert color={C.red} size={18} />
+                  <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1, marginLeft: 8 }}>{error}</Text>
+                </View>
+              ) : null}
+
+              <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Your Email Address</Text>
+              <TextInput
+                style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20, borderColor: !email && error ? C.red : C.border }]}
+                placeholder="your.email@example.com"
+                placeholderTextColor={C.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={(t) => { setEmail(t); setError(''); }}
+                autoFocus
+              />
+
+              <TouchableOpacity 
+                style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: 18, marginBottom: 14 }]} 
+                onPress={handleSendPasswordResetCode}
+                disabled={isSendingCode}
+              >
+                {isSendingCode ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Send Password Reset Code →</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity style={{ alignItems: 'center', marginTop: 12 }} onPress={() => { setError(''); setAuthSubStep('input'); }}>
+                <Text style={{ color: C.accent, fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' }}>
+                  Remember your password? Sign In
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </View>
+      );
+    }
+
+    if (authSubStep === 'reset_password') {
+      return (
+        <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
+          <StepHeader currentStep={1} totalSteps={6} onBack={handleBack} />
+
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <ScrollView 
+              contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                <View style={{ width: 68, height: 68, borderRadius: 22, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
+                  <Text style={{ fontSize: 32 }}>🔑</Text>
+                </View>
+                <Text style={[s.heading, { color: C.text, fontSize: 22, textAlign: 'center' }]}>Create New Password</Text>
+                <Text style={[s.bodySmall, { color: C.textSoft, textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }]}>
+                  Enter the 6-digit code sent to{'\n'}
+                  <Text style={{ color: C.accent, fontWeight: '700' }}>{email}</Text>
+                </Text>
+              </View>
+
+              {/* ERROR ALERT BANNER */}
+              {error ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(224,54,56,0.15)', borderWidth: 1, borderColor: C.red, marginBottom: 16 }}>
+                  <IconAlert color={C.red} size={18} />
+                  <Text style={{ color: C.red, fontSize: 12, fontWeight: '700', flex: 1, marginLeft: 8 }}>{error}</Text>
+                </View>
+              ) : null}
+
+              <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 8, textAlign: 'center' }}>
+                6-DIGIT VERIFICATION CODE
+              </Text>
+              <TextInput
+                style={[s.textInput, { width: '100%', fontSize: 26, fontWeight: '900', letterSpacing: 8, textAlign: 'center', paddingVertical: 12, marginBottom: 18, borderColor: error && (!otpCode || otpCode.length < 6) ? C.red : C.accent }]}
+                placeholder="••••••"
+                placeholderTextColor={C.textMuted}
+                keyboardType="number-pad"
+                maxLength={6}
+                value={otpCode}
+                onChangeText={(t) => { setOtpCode(t); setError(''); }}
+                autoFocus
+              />
+
+              <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>New Account Password</Text>
+              <TextInput
+                style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20, borderColor: newPassword && newPassword.length < 8 && error ? C.red : C.border }]}
+                placeholder="Minimum 8 characters"
+                placeholderTextColor={C.textMuted}
+                secureTextEntry
+                value={newPassword}
+                onChangeText={(t) => { setNewPassword(t); setError(''); }}
+              />
+
+              <TouchableOpacity 
+                style={[s.btnPrimary, { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: 18, marginBottom: 14 }]} 
+                onPress={handleConfirmPasswordReset}
+                disabled={isResettingPassword}
+              >
+                {isResettingPassword ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Save New Password & Sign In →</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={{ alignItems: 'center', marginTop: 12 }}>
+                {countdown > 0 ? (
+                  <Text style={{ color: C.textMuted, fontSize: 12, fontWeight: '600' }}>
+                    Resend code in <Text style={{ color: C.accent, fontWeight: '800' }}>{countdown}s</Text>
+                  </Text>
+                ) : (
+                  <TouchableOpacity onPress={handleSendPasswordResetCode} disabled={isSendingCode}>
+                    <Text style={{ color: C.accent, fontSize: 13, fontWeight: '800', textDecorationLine: 'underline' }}>
+                      {isSendingCode ? 'Sending...' : 'Resend 6-Digit Code'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </View>
+      );
+    }
+
     return (
       <View style={{ flex: 1, backgroundColor: C.bg }} {...swipeBackResponder.panHandlers}>
         <StepHeader currentStep={1} totalSteps={6} onBack={handleBack} />
@@ -1549,6 +1770,20 @@ function OnboardingScreen({ onComplete, onStepChange }) {
               value={password}
               onChangeText={(t) => { setPassword(t); setError(''); }}
             />
+
+            {authMode === 'signin' && (
+              <TouchableOpacity 
+                style={{ alignSelf: 'flex-end', marginTop: -12, marginBottom: 20 }}
+                onPress={() => {
+                  setError('');
+                  setAuthSubStep('forgot_password');
+                }}
+              >
+                <Text style={{ color: C.accent, fontSize: 12, fontWeight: '700' }}>
+                  Forgot Password?
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {authMode === 'signin' ? (
               <>
