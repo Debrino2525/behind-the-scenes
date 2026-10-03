@@ -42,7 +42,8 @@ import {
   supabaseSaveProfile,
   supabaseUploadPhoto,
   supabaseUploadVoiceNote,
-  supabaseSignOut
+  supabaseSignOut,
+  supabaseDeleteAccount
 } from './lib/supabaseAuth';
 import {
   getProfilesFromDb,
@@ -5458,6 +5459,11 @@ export default function App() {
                 try {
                   const user = await supabaseGetCurrentUser();
                   const targetId = userProfile?.id || user?.id;
+                  try {
+                    await supabaseDeleteAccount();
+                  } catch (fnErr) {
+                    console.log('[Edge Function Deletion fallback]', fnErr?.message);
+                  }
                   if (targetId) {
                     await supabasePurgeUserAccount(targetId);
                   }
