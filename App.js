@@ -31,6 +31,7 @@ import {
   supabase,
   supabaseLoginWithEmail,
   supabaseLoginWithGoogleMobile,
+  supabaseLoginWithFacebookMobile,
   supabaseSignUpWithEmail,
   supabaseSendOtp,
   supabaseVerifyOtp,
@@ -370,6 +371,20 @@ function GoogleLogo({ size = 20, style }) {
 }
 
 // ══════════════════════════════════════════════════
+//  OFFICIAL FACEBOOK BRAND VECTOR ICON
+// ══════════════════════════════════════════════════
+function FacebookLogo({ size = 20, style }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path
+        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+        fill="#1877F2"
+      />
+    </Svg>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  INTERNATIONAL LUXURY VECTOR ICONS (SVG)
 // ══════════════════════════════════════════════════
 function NavDiscoverIcon({ color = '#94A3B8', size = 22 }) {
@@ -628,6 +643,7 @@ function OnboardingScreen({ onComplete, onStepChange }) {
   const [scanProgress, setScanProgress] = useState(0);
   const [isVerified, setIsVerified] = useState(false);
   const [loadingOAuth, setLoadingOAuth] = useState(false);
+  const [loadingFacebook, setLoadingFacebook] = useState(false);
   const [faceError, setFaceError] = useState('');
   const [livenessConfidence, setLivenessConfidence] = useState(98.4);
 
@@ -772,6 +788,49 @@ function OnboardingScreen({ onComplete, onStepChange }) {
     }
   };
 
+  const handleFacebookSignIn = async () => {
+    try {
+      setLoadingFacebook(true);
+      setError('');
+
+      // If active session already exists, skip directly to Age Check
+      const existing = await supabaseGetCurrentUser();
+      if (existing) {
+        if (existing.user_metadata?.full_name) setFullName(existing.user_metadata.full_name);
+        if (existing.email) setEmail(existing.email);
+        const existingProfile = await supabaseGetProfile(existing.id);
+        if (existingProfile && existingProfile.name) {
+          await saveLocalProfile(existingProfile);
+          onComplete(existingProfile);
+          return;
+        }
+        setStep(3);
+        return;
+      }
+
+      const user = await supabaseLoginWithFacebookMobile();
+      if (user) {
+        if (user.user_metadata?.full_name) setFullName(user.user_metadata.full_name);
+        if (user.email) setEmail(user.email);
+        const existingProfile = await supabaseGetProfile(user.id);
+        if (existingProfile && existingProfile.name) {
+          await saveLocalProfile(existingProfile);
+          onComplete(existingProfile);
+          return;
+        }
+        setStep(3); // Proceed to Age Check
+      }
+    } catch (err) {
+      console.warn('[Facebook Sign-In]', err);
+      Alert.alert(
+        'Facebook Authentication',
+        err?.message || 'Could not complete Facebook sign-in. You can sign up with email verification below.'
+      );
+    } finally {
+      setLoadingFacebook(false);
+    }
+  };
+
   // SEND 6-DIGIT VERIFICATION CODE TO EMAIL
   const handleSendOtp = async () => {
     const cleanName = fullName.trim();
@@ -789,6 +848,7 @@ function OnboardingScreen({ onComplete, onStepChange }) {
 
     setIsSendingCode(true);
     setError('');
+    setOtpCode('');
 
     try {
       await supabaseSendOtp(cleanEmail);
@@ -851,7 +911,12 @@ function OnboardingScreen({ onComplete, onStepChange }) {
       setStep(3); // Advance to Age Check
     } catch (err) {
       console.warn('[Supabase Verify OTP]', err);
-      setError(err?.message || 'Invalid or expired code. Please check for the latest email or tap Resend.');
+      const errMsg = err?.message || '';
+      if (errMsg.toLowerCase().includes('expired') || errMsg.toLowerCase().includes('invalid')) {
+        setError('This code has expired or is from an earlier email. Please enter the newest 6-digit code or tap Resend.');
+      } else {
+        setError(errMsg || 'Invalid or expired code. Please check for the latest email or tap Resend.');
+      }
     } finally {
       setIsVerifyingCode(false);
     }
@@ -1110,6 +1175,7 @@ function OnboardingScreen({ onComplete, onStepChange }) {
     try {
       const user = await supabaseGetCurrentUser();
       if (user && user.id) {
+        profile.id = user.id;
         if (capturedSelfieUri) {
           try {
             const uploadedUrl = await supabaseUploadPhoto(capturedSelfieUri);
@@ -1176,14 +1242,14 @@ function OnboardingScreen({ onComplete, onStepChange }) {
             paddingHorizontal: 20,
             borderRadius: 18,
             width: '100%',
-            marginTop: 32,
+            marginTop: 28,
             shadowColor: '#000',
             shadowOpacity: 0.2,
             shadowRadius: 10,
             elevation: 4
           }}
           onPress={handleGoogleSignIn}
-          disabled={loadingOAuth}
+          disabled={loadingOAuth || loadingFacebook}
         >
           {loadingOAuth ? (
             <ActivityIndicator color="#111" size="small" />
@@ -1198,7 +1264,38 @@ function OnboardingScreen({ onComplete, onStepChange }) {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[s.btnPrimary, { marginTop: 12, width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#1877F2',
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            borderRadius: 18,
+            width: '100%',
+            marginTop: 10,
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 10,
+            elevation: 4
+          }}
+          onPress={handleFacebookSignIn}
+          disabled={loadingOAuth || loadingFacebook}
+        >
+          {loadingFacebook ? (
+            <ActivityIndicator color="#FFF" size="small" />
+          ) : (
+            <>
+              <FacebookLogo size={20} style={{ marginRight: 10 }} />
+              <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>
+                Continue with Facebook
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[s.btnPrimary, { marginTop: 10, width: '100%', alignItems: 'center', paddingVertical: 15, borderRadius: 18 }]} 
           onPress={() => { setError(''); setAuthMode('signup'); setStep(2); }}
         >
           <Text style={[s.btnPrimaryText, { fontSize: 14 }]}>Sign Up with Email (18+) →</Text>
@@ -1335,7 +1432,7 @@ function OnboardingScreen({ onComplete, onStepChange }) {
                 : 'Synced with Supabase Cloud Database & Verification'}
             </Text>
 
-            {/* Quick Google OAuth option */}
+            {/* Quick Google & Facebook OAuth options */}
             <TouchableOpacity 
               style={{
                 flexDirection: 'row',
@@ -1346,11 +1443,11 @@ function OnboardingScreen({ onComplete, onStepChange }) {
                 paddingHorizontal: 20,
                 borderRadius: 16,
                 width: '100%',
-                marginBottom: 16,
+                marginBottom: 10,
                 elevation: 2
               }}
               onPress={handleGoogleSignIn}
-              disabled={loadingOAuth}
+              disabled={loadingOAuth || loadingFacebook}
             >
               {loadingOAuth ? (
                 <ActivityIndicator color="#111" size="small" />
@@ -1359,6 +1456,34 @@ function OnboardingScreen({ onComplete, onStepChange }) {
                   <GoogleLogo size={20} style={{ marginRight: 10 }} />
                   <Text style={{ color: '#1A1E2D', fontWeight: '800', fontSize: 13 }}>
                     Continue with Google
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#1877F2',
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                borderRadius: 16,
+                width: '100%',
+                marginBottom: 16,
+                elevation: 2
+              }}
+              onPress={handleFacebookSignIn}
+              disabled={loadingOAuth || loadingFacebook}
+            >
+              {loadingFacebook ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <FacebookLogo size={20} style={{ marginRight: 10 }} />
+                  <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>
+                    Continue with Facebook
                   </Text>
                 </>
               )}
@@ -4866,6 +4991,18 @@ export default function App() {
         if (mounted && local && local.name) {
           setUserProfile(local);
           setLoadingSession(false);
+
+          // Silent background sync with Supabase Cloud
+          supabaseGetCurrentUser().then(user => {
+            if (user && user.id) {
+              supabaseGetProfile(user.id).then(remote => {
+                if (mounted && remote && remote.name) {
+                  setUserProfile(remote);
+                  saveLocalProfile(remote);
+                }
+              }).catch(() => {});
+            }
+          }).catch(() => {});
           return;
         }
 
