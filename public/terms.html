@@ -3,35 +3,299 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Terms of Service & EULA - Behind The Scenes (BTS)</title>
+  <title>Terms of Service & EULA • Behind The Scenes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #1e293b; background: #f8fafc; }
-    h1 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
-    h2 { color: #334155; margin-top: 28px; }
-    .card { background: #ffffff; padding: 32px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-    .footer { margin-top: 40px; font-size: 0.9em; color: #64748b; }
+    :root {
+      --bg: #0A0C10;
+      --card-bg: rgba(20, 24, 33, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #FFB800;
+      --accent-glow: rgba(255, 184, 0, 0.15);
+      --emerald: #10B981;
+      --red: #E03638;
+      --text: #F8FAFC;
+      --text-soft: #94A3B8;
+      --text-muted: #64748B;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 85% 15%, rgba(255, 184, 0, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 15% 85%, rgba(224, 54, 56, 0.05) 0%, transparent 45%);
+      background-attachment: fixed;
+      color: var(--text);
+      line-height: 1.7;
+      padding: 0 20px;
+      min-height: 100vh;
+    }
+    .nav {
+      max-width: 900px;
+      margin: 24px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(16, 20, 28, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #FFB800, #E03638);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 900;
+      box-shadow: 0 4px 12px rgba(255, 184, 0, 0.3);
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.5px;
+    }
+    .brand-tag {
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+    .nav-link {
+      color: var(--text-soft);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: var(--accent);
+      background: rgba(255, 184, 0, 0.08);
+    }
+    .container {
+      max-width: 900px;
+      margin: 36px auto 60px;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 100px;
+      color: var(--emerald);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #FFFFFF 40%, #CBD5E1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .effective-date {
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+    .section {
+      margin-bottom: 36px;
+    }
+    .section:last-child {
+      margin-bottom: 0;
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 span {
+      color: var(--accent);
+      font-size: 16px;
+    }
+    p {
+      color: var(--text-soft);
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+    ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    li {
+      position: relative;
+      padding-left: 24px;
+      color: var(--text-soft);
+      font-size: 14px;
+    }
+    li::before {
+      content: "✦";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--accent);
+      font-size: 12px;
+    }
+    li strong {
+      color: #FFFFFF;
+    }
+    .warning-box {
+      background: rgba(224, 54, 56, 0.06);
+      border: 1px solid rgba(224, 54, 56, 0.25);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 18px;
+    }
+    .warning-box h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--red);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .footer {
+      text-align: center;
+      padding: 40px 0 20px;
+      border-top: 1px solid var(--card-border);
+      margin-top: 60px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    @media (max-width: 640px) {
+      .card { padding: 24px 20px; }
+      h1 { font-size: 28px; }
+      .nav-links { display: none; }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Terms of Service & Community Guidelines</h1>
-    <p><strong>Effective Date:</strong> October 3, 2026</p>
-    <p>By creating an account on Behind The Scenes ("BTS"), you agree to abide by these Terms of Service and End User License Agreement (EULA).</p>
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <div class="brand-icon">🎬</div>
+      <div>
+        <div class="brand-title">Behind The Scenes</div>
+        <div class="brand-tag">Real Vibes • No Fake Life</div>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="privacy.html" class="nav-link">Privacy</a>
+      <a href="terms.html" class="nav-link active">Terms</a>
+      <a href="data-deletion.html" class="nav-link">Data Deletion</a>
+    </div>
+  </nav>
 
-    <h2>1. Eligibility & Age Restriction</h2>
-    <p>You must be at least 18 years old to create an account or use BTS. Users under 18 are strictly prohibited.</p>
+  <div class="container">
+    <div class="hero">
+      <div class="badge">⚖️ Community Standards</div>
+      <h1>Terms of Service & EULA</h1>
+      <p class="effective-date">Effective Date: October 3, 2026</p>
+    </div>
 
-    <h2>2. Zero-Tolerance Policy on Objectionable Content</h2>
-    <p>Behind The Scenes maintains a strict zero-tolerance policy against abusive, harassing, defamatory, obscene, or fraudulent behavior. Users engaging in such conduct will have their accounts terminated immediately and permanently.</p>
+    <div class="card">
+      <div class="section">
+        <h2><span>01.</span> Acceptance of Terms</h2>
+        <p>By downloading, registering for, or using <strong>Behind The Scenes ("BTS")</strong>, you enter into a binding End User License Agreement (EULA) with Behind The Scenes Inc. If you do not agree to these terms, you must not access or use our services.</p>
+      </div>
 
-    <h2>3. Anti-Catfishing & Authentic Media</h2>
-    <p>BTS is built on real, authentic connections. Uploading stolen images, artificial media without disclosure, or impersonating others will result in immediate account revocation.</p>
+      <div class="section">
+        <h2><span>02.</span> Strict 18+ Age Gating</h2>
+        <p>BTS is exclusively intended for adults aged 18 and older. We enforce strict biometric age gating during onboarding. Underage access, impersonation, or assisting minors to register will lead to immediate, irrevocable account termination.</p>
+      </div>
 
-    <h2>4. Contact & Support</h2>
-    <p>For questions or reports, contact: <a href="mailto:richard.k.appiah@outlook.com">richard.k.appiah@outlook.com</a>.</p>
-  </div>
-  <div class="footer">
-    <p>© 2026 Behind The Scenes. All rights reserved.</p>
+      <div class="section">
+        <h2><span>03.</span> Zero Tolerance Policy on Objectionable Content</h2>
+        <p>In accordance with Apple App Store Guideline 1.2 and Google Play Developer Policies, Behind The Scenes maintains a <strong>strict zero-tolerance policy</strong> for objectionable content and abusive users.</p>
+        
+        <div class="warning-box">
+          <h3>🚫 Prohibited Conduct (Instant Permanent Ban)</h3>
+          <ul>
+            <li><strong>Harassment & Hate Speech:</strong> Bullying, racial or ethnic slurs, misogyny, homophobia, or threatening language.</li>
+            <li><strong>Obscene & Explicit Media:</strong> Uploading nudity, sexual solicitations, violence, or unlawful content.</li>
+            <li><strong>Catfishing & Fraud:</strong> Impersonating public figures or other individuals, using stolen photos, or deceptive AI generation without disclosure.</li>
+            <li><strong>Commercial Solicitation:</strong> Unauthorized advertising, spamming, financial scams, or bot automation.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2><span>04.</span> In-App Reporting & Moderation Response</h2>
+        <p>We provide instant, one-tap reporting and blocking tools on every profile card and chat conversation. Reported content is investigated by our safety team within 24 hours, and confirmed violators are permanently ejected from the platform.</p>
+      </div>
+
+      <div class="section">
+        <h2><span>05.</span> Account Termination</h2>
+        <p>BTS reserves the right to suspend or permanently delete any account that violates our safety standards or engages in abusive behavior, without prior notice.</p>
+      </div>
+
+      <div class="section">
+        <h2><span>06.</span> Support & Grievances</h2>
+        <p>To report violations or file an appeal, please contact our Trust & Safety team: <a href="mailto:richard.k.appiah@outlook.com">richard.k.appiah@outlook.com</a>.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>© 2026 Behind The Scenes Inc. All rights reserved. • Built for authenticity.</p>
+    </div>
   </div>
 </body>
 </html>
