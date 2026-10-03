@@ -3731,41 +3731,232 @@ function DateDropMediaGallery({ photos, defaultPhoto }) {
 }
 
 // ══════════════════════════════════════════════════
-//  DATE DROP SUCCESS MODAL (GREEN CHECKMARK CELEBRATION)
+//  ANIMATED MOTION CHECKMARK (DYNAMIC SPRING & STRIKE)
 // ══════════════════════════════════════════════════
-function DateDropSuccessModal({ visible, drop, onClose }) {
-  const scaleAnim = useRef(new Animated.Value(0.6)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+function AnimatedMotionCheckMark({ size = 96, strokeWidth = 5.5, color = '#10B981' }) {
+  const haloScale = useRef(new Animated.Value(0.7)).current;
+  const haloOpacity = useRef(new Animated.Value(0)).current;
+  const circleScale = useRef(new Animated.Value(0)).current;
+  const circleRotate = useRef(new Animated.Value(-35)).current;
+  const checkScale = useRef(new Animated.Value(0)).current;
+  const checkTransX = useRef(new Animated.Value(-16)).current;
+  const checkTransY = useRef(new Animated.Value(16)).current;
+  const checkOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    haloScale.setValue(0.7);
+    haloOpacity.setValue(0.75);
+    circleScale.setValue(0);
+    circleRotate.setValue(-35);
+    checkScale.setValue(0);
+    checkTransX.setValue(-16);
+    checkTransY.setValue(16);
+    checkOpacity.setValue(0);
+
+    const anim = Animated.parallel([
+      // 1. Circle outline pops with spring bounce and spins into level position
+      Animated.spring(circleScale, {
+        toValue: 1,
+        friction: 5.5,
+        tension: 80,
+        useNativeDriver: true
+      }),
+      Animated.timing(circleRotate, {
+        toValue: 0,
+        duration: 380,
+        useNativeDriver: true
+      }),
+      // 2. Outer emerald shockwave / aura pulse
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(haloScale, {
+            toValue: 1.45,
+            duration: 550,
+            useNativeDriver: true
+          }),
+          Animated.timing(haloOpacity, {
+            toValue: 0,
+            duration: 550,
+            useNativeDriver: true
+          })
+        ])
+      ]),
+      // 3. Staggered Checkmark Strike: snaps in with diagonal thrust
+      Animated.sequence([
+        Animated.delay(120),
+        Animated.parallel([
+          Animated.timing(checkOpacity, {
+            toValue: 1,
+            duration: 110,
+            useNativeDriver: true
+          }),
+          Animated.spring(checkScale, {
+            toValue: 1,
+            friction: 5,
+            tension: 95,
+            useNativeDriver: true
+          }),
+          Animated.spring(checkTransX, {
+            toValue: 0,
+            friction: 5,
+            tension: 95,
+            useNativeDriver: true
+          }),
+          Animated.spring(checkTransY, {
+            toValue: 0,
+            friction: 5,
+            tension: 95,
+            useNativeDriver: true
+          })
+        ])
+      ])
+    ]);
+
+    anim.start(() => {
+      try {
+        if (Vibration && typeof Vibration.vibrate === 'function') {
+          Vibration.vibrate(22);
+        }
+      } catch (_) {}
+    });
+
+    return () => anim.stop();
+  }, []);
+
+  const spin = circleRotate.interpolate({
+    inputRange: [-35, 0],
+    outputRange: ['-35deg', '0deg']
+  });
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      {/* Outer Shockwave Pulse Ring */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: size * 1.25,
+          height: size * 1.25,
+          borderRadius: (size * 1.25) / 2,
+          borderWidth: 2,
+          borderColor: color,
+          opacity: haloOpacity,
+          transform: [{ scale: haloScale }]
+        }}
+      />
+
+      {/* Ambient Inner Radiant Glow */}
+      <View
+        style={{
+          position: 'absolute',
+          width: size * 0.88,
+          height: size * 0.88,
+          borderRadius: (size * 0.88) / 2,
+          backgroundColor: 'rgba(16, 185, 129, 0.14)',
+          borderWidth: 1.5,
+          borderColor: 'rgba(16, 185, 129, 0.35)',
+          shadowColor: '#10B981',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.5,
+          shadowRadius: 18
+        }}
+      />
+
+      {/* Layer 1: Circular Arc Outline with Spring & Spin */}
+      <Animated.View
+        style={{
+          width: size,
+          height: size,
+          alignItems: 'center',
+          justifyContent: 'center',
+          transform: [{ scale: circleScale }, { rotate: spin }]
+        }}
+      >
+        <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+          <Path
+            d="M 88 32 A 42 42 0 1 1 77 18"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+        </Svg>
+      </Animated.View>
+
+      {/* Layer 2: Checkmark with Staggered Snap & Diagonal Thrust */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: checkOpacity,
+          transform: [
+            { scale: checkScale },
+            { translateX: checkTransX },
+            { translateY: checkTransY }
+          ]
+        }}
+      >
+        <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+          <Path
+            d="M 32 43 L 48 59 L 92 15"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </Animated.View>
+    </View>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  REUSABLE ANIMATED SUCCESS CHECK MODAL
+// ══════════════════════════════════════════════════
+function AnimatedSuccessCheckModal({
+  visible,
+  badge = '✓ VERIFIED & SAVED',
+  title = 'Saved Successfully',
+  message = '',
+  previewPhotos = [],
+  buttonText = 'OK',
+  onClose
+}) {
+  const cardScale = useRef(new Animated.Value(0.72)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(scaleAnim, {
+        Animated.spring(cardScale, {
           toValue: 1,
           friction: 6,
-          tension: 70,
+          tension: 75,
           useNativeDriver: true
         }),
-        Animated.timing(opacityAnim, {
+        Animated.timing(cardOpacity, {
           toValue: 1,
           duration: 220,
           useNativeDriver: true
         })
       ]).start();
     } else {
-      scaleAnim.setValue(0.6);
-      opacityAnim.setValue(0);
+      cardScale.setValue(0.72);
+      cardOpacity.setValue(0);
     }
   }, [visible]);
 
   if (!visible) return null;
 
-  const photoList = Array.isArray(drop?.photos) && drop.photos.length > 0 
-    ? drop.photos 
-    : (drop?.photo ? [drop.photo] : []);
+  const photoList = Array.isArray(previewPhotos)
+    ? previewPhotos.filter(Boolean)
+    : (previewPhotos ? [previewPhotos] : []);
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{
         flex: 1,
         backgroundColor: 'rgba(4, 7, 13, 0.88)',
@@ -3787,42 +3978,30 @@ function DateDropSuccessModal({ visible, drop, onClose }) {
           shadowOpacity: 0.35,
           shadowRadius: 30,
           elevation: 14,
-          transform: [{ scale: scaleAnim }],
-          opacity: opacityAnim
+          transform: [{ scale: cardScale }],
+          opacity: cardOpacity
         }}>
-          {/* Glowing Green Icon Container with outer soft aura */}
-          <View style={{
-            width: 114,
-            height: 114,
-            borderRadius: 57,
-            backgroundColor: 'rgba(16, 185, 129, 0.12)',
-            borderWidth: 1.5,
-            borderColor: 'rgba(16, 185, 129, 0.35)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginBottom: 16,
-            shadowColor: '#10B981',
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 0.6,
-            shadowRadius: 18
-          }}>
-            <IconGreenCheckCircle size={86} strokeWidth={5.5} color="#10B981" />
+          {/* Animated Motion Checkmark */}
+          <View style={{ marginBottom: 16, marginTop: 4 }}>
+            <AnimatedMotionCheckMark size={96} strokeWidth={5.5} color="#10B981" />
           </View>
 
           {/* Status Badge */}
-          <View style={{
-            backgroundColor: 'rgba(16, 185, 129, 0.16)',
-            borderWidth: 1,
-            borderColor: 'rgba(16, 185, 129, 0.4)',
-            paddingHorizontal: 12,
-            paddingVertical: 5,
-            borderRadius: 18,
-            marginBottom: 12
-          }}>
-            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '900', letterSpacing: 1.2 }}>
-              ✓ DATE VERIFIED & DROPPED
-            </Text>
-          </View>
+          {badge ? (
+            <View style={{
+              backgroundColor: 'rgba(16, 185, 129, 0.16)',
+              borderWidth: 1,
+              borderColor: 'rgba(16, 185, 129, 0.4)',
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 18,
+              marginBottom: 12
+            }}>
+              <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '900', letterSpacing: 1.2 }}>
+                {badge}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Title */}
           <Text style={{
@@ -3832,20 +4011,23 @@ function DateDropSuccessModal({ visible, drop, onClose }) {
             textAlign: 'center',
             marginBottom: 6
           }}>
-            Date Story Is Live! 🎉
+            {title}
           </Text>
 
-          <Text style={{
-            color: '#94A3B8',
-            fontSize: 13,
-            lineHeight: 19,
-            textAlign: 'center',
-            marginBottom: 18
-          }}>
-            Your authentic connection, review, and {photoList.length} date photos have been published to the community feed!
-          </Text>
+          {/* Message */}
+          {message ? (
+            <Text style={{
+              color: '#94A3B8',
+              fontSize: 13,
+              lineHeight: 19,
+              textAlign: 'center',
+              marginBottom: 18
+            }}>
+              {message}
+            </Text>
+          ) : null}
 
-          {/* 3-Photo Preview Row */}
+          {/* Photos Preview Row */}
           {photoList.length > 0 && (
             <View style={{
               flexDirection: 'row',
@@ -3889,7 +4071,7 @@ function DateDropSuccessModal({ visible, drop, onClose }) {
             </View>
           )}
 
-          {/* Primary Action Button */}
+          {/* Action Button: Styled OK / Primary Pill */}
           <TouchableOpacity
             style={{
               width: '100%',
@@ -3907,13 +4089,34 @@ function DateDropSuccessModal({ visible, drop, onClose }) {
             onPress={onClose}
             activeOpacity={0.85}
           >
-            <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>
-              Awesome, View in Feed ✨
+            <Text style={{ color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 }}>
+              {buttonText}
             </Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  DATE DROP SUCCESS MODAL (GREEN CHECK CELEBRATION)
+// ══════════════════════════════════════════════════
+function DateDropSuccessModal({ visible, drop, onClose }) {
+  const photoList = Array.isArray(drop?.photos) && drop.photos.length > 0 
+    ? drop.photos 
+    : (drop?.photo ? [drop.photo] : []);
+
+  return (
+    <AnimatedSuccessCheckModal
+      visible={visible}
+      badge="✓ DATE VERIFIED & DROPPED"
+      title="Date Story Is Live! 🎉"
+      message={`Your authentic connection, review, and ${photoList.length || 3} date photos have been published to the community feed!`}
+      previewPhotos={photoList}
+      buttonText="Awesome, View in Feed ✨"
+      onClose={onClose}
+    />
   );
 }
 
@@ -4684,6 +4887,7 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout, onDeleteAccount
       ];
   const [photos, setPhotos] = useState(initialPhotos);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [showProfileSavedModal, setShowProfileSavedModal] = useState(false);
 
   // Pick or snap photo for specific slot (0 = Profile Photo, 1 = Photo 2, 2 = Photo 3)
   const handleChangePhotoIndex = (index) => {
@@ -4908,12 +5112,13 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout, onDeleteAccount
     onUpdateProfile(updated);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
-    Alert.alert('Profile Saved', 'Your 3 photos, details, and voice note intro have been saved!');
+    setShowProfileSavedModal(true);
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <ScrollView 
+      <View style={{ flex: 1 }}>
+        <ScrollView 
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 175 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -5517,6 +5722,17 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout, onDeleteAccount
         <Text style={{ color: C.red, fontWeight: '700', fontSize: 11 }}>Delete Account (Data Purge)</Text>
       </TouchableOpacity>
     </ScrollView>
+    {/* Animated Green Checkmark Modal */}
+    <AnimatedSuccessCheckModal
+      visible={showProfileSavedModal}
+      badge="✓ PROFILE VERIFIED & SAVED"
+      title="Profile Saved"
+      message="Your 3 photos, details, and voice note intro have been saved!"
+      buttonText="OK"
+      previewPhotos={photos}
+      onClose={() => setShowProfileSavedModal(false)}
+    />
+    </View>
     </TouchableWithoutFeedback>
   );
 }
