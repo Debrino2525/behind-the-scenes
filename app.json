@@ -16,13 +16,19 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.behindthescenes.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Behind The Scenes requires camera access to perform the 5-second anti-catfish selfie verification and capture verified date moments.",
+        "NSMicrophoneUsageDescription": "Behind The Scenes requires microphone access to record your authentic voice intro and voice messages in chat.",
+        "NSPhotoLibraryUsageDescription": "Behind The Scenes requires photo library access to upload your 3 dating profile photos and candid date memories."
       }
     },
     "android": {
       "package": "com.behindthescenes.app",
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
@@ -51,11 +57,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": false,
-          "cameraPermission": "Behind The Scenes requires camera access to perform the 5-second anti-catfish selfie check."
+          "photosPermission": "Behind The Scenes requires photo library access to upload your 3 dating profile photos and candid date memories.",
+          "cameraPermission": "Behind The Scenes requires camera access to perform the 5-second anti-catfish selfie verification and capture verified date moments."
         }
       ],
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Behind The Scenes requires microphone access to record your authentic voice intro and voice messages in chat."
+        }
+      ],
       "expo-asset"
     ]
   }

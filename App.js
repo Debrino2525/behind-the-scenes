@@ -52,7 +52,8 @@ import {
   createMatchInDb,
   getMessagesFromDb,
   sendMessageToDb,
-  submitReportToDb
+  submitReportToDb,
+  supabasePurgeUserAccount
 } from './lib/supabase';
 import { 
   loadLocalProfile, 
@@ -64,6 +65,7 @@ import { Audio } from './lib/audioService';
 import Svg, { Path } from 'react-native-svg';
 import { verifyHumanFace } from './lib/faceVerification';
 import ThemeBackground from './ThemeBackground';
+import { subscribeToLivePresence } from './lib/presenceService';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_INSET = Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight || 20);
@@ -824,7 +826,27 @@ function OnboardingScreen({ onComplete, onStepChange }) {
     setError('');
 
     try {
-      await supabaseVerifyOtp(email.trim(), cleanCode);
+      const user = await supabaseVerifyOtp(email.trim(), cleanCode);
+
+      // Option B Hybrid Sync: If user set a password (min 8 chars), save it to their Supabase account
+      if (password && password.length >= 8) {
+        try {
+          await supabase.auth.updateUser({ password: password });
+        } catch (passErr) {
+          console.warn('[Sync Password After OTP Error]', passErr?.message || passErr);
+        }
+      }
+
+      // Check if user ALREADY completed their profile in the database!
+      if (user && user.id) {
+        const existingProfile = await supabaseGetProfile(user.id);
+        if (existingProfile && existingProfile.name) {
+          await saveLocalProfile(existingProfile);
+          onComplete(existingProfile);
+          return;
+        }
+      }
+
       setError('');
       setStep(3); // Advance to Age Check
     } catch (err) {
@@ -1384,9 +1406,16 @@ function OnboardingScreen({ onComplete, onStepChange }) {
               onChangeText={(t) => { setEmail(t); setError(''); }}
             />
 
-            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 6 }}>Password</Text>
+            <Text style={{ color: C.textSoft, fontSize: 12, fontWeight: '800', marginBottom: 4 }}>
+              {authMode === 'signup' ? 'Create Password (Optional — min. 8 chars)' : 'Account Password'}
+            </Text>
+            {authMode === 'signup' && (
+              <Text style={{ color: C.textMuted, fontSize: 11, marginBottom: 8, lineHeight: 15 }}>
+                Setting a password allows you to log in with either Password or 6-Digit Email Code.
+              </Text>
+            )}
             <TextInput
-              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20, borderColor: password.length < 8 && error ? C.red : C.border }]}
+              style={[s.textInput, { width: '100%', textAlign: 'left', marginTop: 0, marginBottom: 20, borderColor: password && password.length < 8 && error ? C.red : C.border }]}
               placeholder="••••••••••••"
               placeholderTextColor={C.textMuted}
               secureTextEntry
@@ -2574,7 +2603,13 @@ function BtsModal({ profile, visible, onClose, onLike }) {
 // ══════════════════════════════════════════════════
 //  MATCHES & CHAT SCREEN
 // ══════════════════════════════════════════════════
-function MatchesScreen({ matches, onSelectMatch, onBack }) {
+function MatchesScreen({ matches, onSelectMatch, onBack, onlineUserIds = new Set() }) {
+  const isUserOnline = (user) => {
+    if (!user) return false;
+    if (user.id && onlineUserIds.has(String(user.id))) return true;
+    return Boolean(user.online && onlineUserIds.size === 0);
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <View style={s.screenHeader}>
@@ -2586,16 +2621,19 @@ function MatchesScreen({ matches, onSelectMatch, onBack }) {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingHorizontal: 16, marginTop: 12 }}>
-        {matches.map((m, idx) => (
-          <TouchableOpacity key={`${m.id}-${idx}`} onPress={() => onSelectMatch(m)} style={{ alignItems: 'center', marginRight: 16 }}>
-            <View style={s.matchAvatarRing}>
-              <Image source={{ uri: m.photo }} style={s.matchAvatar} />
-              {m.online && <View style={s.onlineDot} />}
-            </View>
-            <Text style={[s.bodyTiny, { color: C.text, fontWeight: '700', marginTop: 4 }]}>{m.name.split(' ')[0]}</Text>
-            <Text style={[s.bodyTiny, { color: C.textMuted }]}>{m.country}</Text>
-          </TouchableOpacity>
-        ))}
+        {matches.map((m, idx) => {
+          const online = isUserOnline(m);
+          return (
+            <TouchableOpacity key={`${m.id}-${idx}`} onPress={() => onSelectMatch(m)} style={{ alignItems: 'center', marginRight: 16 }}>
+              <View style={s.matchAvatarRing}>
+                <Image source={{ uri: m.photo }} style={s.matchAvatar} />
+                {online && <View style={s.onlineDot} />}
+              </View>
+              <Text style={[s.bodyTiny, { color: C.text, fontWeight: '700', marginTop: 4 }]}>{m.name.split(' ')[0]}</Text>
+              <Text style={[s.bodyTiny, { color: online ? C.emerald : C.textMuted }]}>{online ? 'Online' : m.country}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       <Text style={[s.bodyTiny, { color: C.textMuted, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginLeft: 20, marginTop: 24, marginBottom: 8 }]}>
@@ -2606,21 +2644,29 @@ function MatchesScreen({ matches, onSelectMatch, onBack }) {
         data={matches}
         keyExtractor={(m, idx) => `${m.id}-${idx}`}
         contentContainerStyle={{ paddingBottom: 180 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={s.chatRow} onPress={() => onSelectMatch(item)}>
-            <Image source={{ uri: item.photo }} style={s.chatAvatar} />
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={[s.bodySmall, { color: C.text, fontWeight: '700' }]}>{item.name}</Text>
-                <Text style={[s.bodyTiny, { color: C.textMuted }]}>{item.time}</Text>
+        renderItem={({ item }) => {
+          const online = isUserOnline(item);
+          return (
+            <TouchableOpacity style={s.chatRow} onPress={() => onSelectMatch(item)}>
+              <View style={{ position: 'relative' }}>
+                <Image source={{ uri: item.photo }} style={s.chatAvatar} />
+                {online && <View style={s.onlineDot} />}
               </View>
-              <Text style={[s.bodyTiny, { color: item.unread ? '#E2E8F0' : C.textMuted, fontWeight: item.unread ? '700' : '400', marginTop: 2 }]} numberOfLines={1}>
-                {item.lastMessage}
-              </Text>
-            </View>
-            {item.unread && <View style={s.unreadDot} />}
-          </TouchableOpacity>
-        )}
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={[s.bodySmall, { color: C.text, fontWeight: '700' }]}>{item.name}</Text>
+                  <Text style={[s.bodyTiny, { color: online ? C.emerald : C.textMuted, fontWeight: online ? '700' : '400' }]}>
+                    {online ? 'Online' : item.time}
+                  </Text>
+                </View>
+                <Text style={[s.bodyTiny, { color: item.unread ? '#E2E8F0' : C.textMuted, fontWeight: item.unread ? '700' : '400', marginTop: 2 }]} numberOfLines={1}>
+                  {item.lastMessage}
+                </Text>
+              </View>
+              {item.unread && <View style={s.unreadDot} />}
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
@@ -2629,12 +2675,17 @@ function MatchesScreen({ matches, onSelectMatch, onBack }) {
 // ══════════════════════════════════════════════════
 //  CHAT MODAL
 // ══════════════════════════════════════════════════
-function ChatScreen({ match, userProfile, onClose }) {
+function ChatScreen({ match, userProfile, onClose, onlineUserIds = new Set() }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [showIcebreakers, setShowIcebreakers] = useState(true);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
   const flatListRef = useRef(null);
+
+  const isMatchOnline = Boolean(
+    (match.id && onlineUserIds.has(String(match.id))) ||
+    (match.online && onlineUserIds.size === 0)
+  );
 
   // Chat Voice Note Recording & Playback State
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -2885,20 +2936,22 @@ function ChatScreen({ match, userProfile, onClose }) {
             
             <TouchableOpacity onPress={() => setShowPhotosModal(true)} style={{ position: 'relative', marginLeft: 12 }}>
               <Image source={{ uri: match.photo }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: C.accent }} />
-              {match.online && (
+              {isMatchOnline && (
                 <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: C.emerald, borderWidth: 1.5, borderColor: C.bg }} />
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setShowPhotosModal(true)} style={{ marginLeft: 12, flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[s.bodySmall, { color: C.text, fontWeight: '800', fontSize: 15 }]}>{match.name}</Text>
-                <View style={{ backgroundColor: 'rgba(212,175,55,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: C.accent }}>
-                  <Text style={{ color: C.accent, fontSize: 9, fontWeight: '800' }}>✓ Gold Verified</Text>
+            <TouchableOpacity onPress={() => setShowPhotosModal(true)} style={{ marginLeft: 10, marginRight: 8, flex: 1, justifyContent: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Text style={[s.bodySmall, { color: C.text, fontWeight: '800', fontSize: 14 }]} numberOfLines={1} ellipsizeMode="tail">
+                  {match.name}
+                </Text>
+                <View style={{ backgroundColor: 'rgba(255,184,0,0.15)', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 5, borderWidth: 0.5, borderColor: C.accent, flexShrink: 0 }}>
+                  <Text style={{ color: C.accent, fontSize: 8.5, fontWeight: '800' }}>✓ Verified</Text>
                 </View>
               </View>
-              <Text style={[s.bodyTiny, { color: match.online ? C.emerald : C.textMuted, marginTop: 1 }]}>
-                {match.online ? 'Online now' : 'Active today'} • {match.country || 'Ghana'}
+              <Text style={[s.bodyTiny, { color: isMatchOnline ? C.emerald : C.textMuted, marginTop: 1 }]} numberOfLines={1}>
+                {isMatchOnline ? 'Online now' : 'Offline'} • {match.country || 'Ghana'}
               </Text>
             </TouchableOpacity>
 
@@ -2911,12 +2964,13 @@ function ChatScreen({ match, userProfile, onClose }) {
                 backgroundColor: 'rgba(255,184,0,0.12)',
                 borderWidth: 1,
                 borderColor: 'rgba(255,184,0,0.35)',
-                paddingHorizontal: 10,
+                paddingHorizontal: 9,
                 paddingVertical: 6,
-                borderRadius: 12
+                borderRadius: 12,
+                flexShrink: 0
               }}
             >
-              <Text style={{ fontSize: 12, marginRight: 4 }}>📸</Text>
+              <Text style={{ fontSize: 11, marginRight: 3 }}>📸</Text>
               <Text style={{ color: C.accent, fontWeight: '800', fontSize: 11 }}>3 Photos</Text>
             </TouchableOpacity>
           </View>
@@ -3828,7 +3882,7 @@ function LikesYouScreen({ onMatchBack, userGender = 'male', userId = null }) {
 // ══════════════════════════════════════════════════
 //  PROFILE SCREEN (EDIT DETAILS & PHOTO)
 // ══════════════════════════════════════════════════
-function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
+function ProfileScreen({ userProfile, onUpdateProfile, onLogout, onDeleteAccount }) {
   const [name, setName] = useState(userProfile?.name || 'New Member');
   const [age, setAge] = useState(String(userProfile?.age || 25));
   const [occupation, setOccupation] = useState(userProfile?.occupation || 'Creative & Entrepreneur');
@@ -4663,7 +4717,17 @@ function ProfileScreen({ userProfile, onUpdateProfile, onLogout }) {
             'This will permanently purge your matches, chats, verified biometric selfie, and candid data from Behind The Scenes. This action cannot be undone.',
             [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete Permanently', style: 'destructive', onPress: onLogout }
+              { 
+                text: 'Delete Permanently', 
+                style: 'destructive', 
+                onPress: async () => {
+                  if (onDeleteAccount) {
+                    await onDeleteAccount();
+                  } else {
+                    await onLogout();
+                  }
+                } 
+              }
             ]
           );
         }}
@@ -4689,6 +4753,16 @@ export default function App() {
   const [celebrationMatch, setCelebrationMatch] = useState(null);
   const [dbProfiles, setDbProfiles] = useState(INITIAL_PROFILES);
   const [blockedIds, setBlockedIds] = useState([]);
+  const [onlineUserIds, setOnlineUserIds] = useState(() => new Set());
+
+  // Real-time Live Presence Tracking (Supabase Presence Room)
+  useEffect(() => {
+    const myId = userProfile?.id || null;
+    const cleanup = subscribeToLivePresence(myId, (onlineSet) => {
+      setOnlineUserIds(onlineSet);
+    });
+    return cleanup;
+  }, [userProfile?.id]);
 
   // Strict opposite-gender matching & age range filtering
   const userGender = userProfile?.gender || 'male';
@@ -4919,7 +4993,16 @@ export default function App() {
               <Text style={{ fontSize: 16 }}>💬</Text>
               {activeMatches.some(m => m.unread) && <View style={s.headerBadge} />}
             </TouchableOpacity>
-            <TouchableOpacity style={s.headerBtn} onPress={() => Alert.alert('Safety Center', 'Community Guidelines, Privacy Policy, Terms of Service, and Account Deletion are available here.', [{ text: 'OK' }])}>
+            <TouchableOpacity 
+              style={s.headerBtn} 
+              onPress={() => {
+                Alert.alert(
+                  'Safety & Community Center',
+                  '• ZERO TOLERANCE: Behind The Scenes enforces strict zero tolerance for objectionable content, harassment, or abusive behavior. Violators are banned immediately within 24 hours.\n\n• BLOCK & REPORT: Tap "Report Profile" anytime to instantly block and report suspicious accounts.\n\n• PRIVACY & BIOMETRICS: Facial scans are processed on-device for liveness verification and never sold to third parties.\n\n• SUPPORT & EULA: safety@behindthescenes.app',
+                  [{ text: 'I Understand' }]
+                );
+              }}
+            >
               <Text style={{ fontSize: 16 }}>🛡️</Text>
             </TouchableOpacity>
           </View>
@@ -4972,6 +5055,7 @@ export default function App() {
           {tab === 'matches' && (
             <MatchesScreen
               matches={activeMatches}
+              onlineUserIds={onlineUserIds}
               onSelectMatch={(m) => { triggerHaptic('light'); setChatMatch(m); }}
               onBack={() => { triggerHaptic('light'); setTab('discover'); }}
             />
@@ -4997,6 +5081,22 @@ export default function App() {
                 await supabaseSignOut();
                 setUserProfile(null);
                 setTab('discover');
+              }}
+              onDeleteAccount={async () => {
+                try {
+                  const user = await supabaseGetCurrentUser();
+                  const targetId = userProfile?.id || user?.id;
+                  if (targetId) {
+                    await supabasePurgeUserAccount(targetId);
+                  }
+                } catch (err) {
+                  console.warn('[Account Deletion Error]', err);
+                }
+                await clearLocalProfile();
+                await supabaseSignOut();
+                setUserProfile(null);
+                setTab('discover');
+                Alert.alert('Account Deleted', 'Your account, matches, chats, and associated data have been permanently removed.');
               }}
             />
           )}
@@ -5061,6 +5161,7 @@ export default function App() {
         <ChatScreen 
           match={chatMatch} 
           userProfile={userProfile}
+          onlineUserIds={onlineUserIds}
           onClose={() => setChatMatch(null)} 
         />
       )}
@@ -5143,11 +5244,11 @@ const s = StyleSheet.create({
   emptyCard: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
 
   // Matches
-  screenHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  screenHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border, backgroundColor: 'rgba(9, 11, 16, 0.85)', zIndex: 30 },
   matchAvatarRing: { width: 60, height: 60, borderRadius: 18, padding: 2, borderWidth: 2, borderColor: C.accent, overflow: 'hidden' },
   matchAvatar: { width: '100%', height: '100%', borderRadius: 14 },
   onlineDot: { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: C.emerald, borderWidth: 2, borderColor: C.bg },
-  chatRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border },
+  chatRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, marginHorizontal: 16, marginBottom: 8, borderRadius: 18, backgroundColor: 'rgba(18, 21, 30, 0.75)', borderWidth: 1, borderColor: C.border },
   chatAvatar: { width: 46, height: 46, borderRadius: 16, borderWidth: 1, borderColor: C.border },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.accent },
 
